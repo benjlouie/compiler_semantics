@@ -1,0 +1,6 @@
+#ifndef __CLASSINHERITANCE_H_
+#define __CLASSINHERITANCE_H_
+
+
+
+#endif //__CLASSINHERITANCE_H_
