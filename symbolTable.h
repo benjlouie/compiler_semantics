@@ -45,17 +45,17 @@ public:
     /*
         *Make a new scope (let, method, class) in the current scope
         */ 
-    void addScope(string newScope);
+    void addScope(std::string newScope);
         
     /*
         * Enter a scope, making sure it exists first
         */
-    void enterScope(string scope);
+	void enterScope(std::string scope);
         
     /*
         * Make a new scope in the current scope and enter it
         */
-    void addAndEnterScope(string scope);
+	void addAndEnterScope(std::string scope);
 
     /*
         * Get the name of the current scope
