@@ -1,14 +1,13 @@
 #ifndef __SEMANT_H_
 #define __SEMANT_H_
 
-#include "classInheritance.h"
 #include "ast.h"
 #include "symbolTable.h"
+#include "classInheritance.h"
 #include <unordered_map>
 
-extern Node *root;
+extern SymbolTable *globalSymTable;
 
 void semant();
-
 
 #endif //__SEMANT_H_
