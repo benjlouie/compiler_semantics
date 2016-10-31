@@ -17,8 +17,11 @@ void semant()
 	case ClassErr::CYCLIC_BAD_INHERITANCE:
 		break;
 	}
-    //checkClassInheritance();
     //TODO:Build symbol table and scoping
-    
+	switch (buildScope()) {
+	case ScopeErr::OK:
+		break;
+	}
+
     //TODO:Call stuff for type checking 
 }

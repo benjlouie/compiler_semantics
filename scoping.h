@@ -1,5 +1,5 @@
-#ifndef __CLASSINHERITANCE_H_
-#define __CLASSINHERITANCE_H_
+#ifndef __SCOPING_H_
+#define __SCOPING_H_
 
 #include "ast.h"
 #include "symbolTable.h"
