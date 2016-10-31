@@ -8,7 +8,7 @@ extern Node *root;
 extern SymbolTable *globalSymTable;
 extern std::unordered_map<std::string, std::string> globalTypeList;
 
-enum ScopeErr {OK};
+enum ScopeErr {SCOPE_OK};
 
 ScopeErr buildScope(void);
 
