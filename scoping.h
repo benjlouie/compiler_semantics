@@ -3,15 +3,13 @@
 
 #include "ast.h"
 #include "symbolTable.h"
-#include <unordered_map>
-#include <queue>
 
 extern Node *root;
 extern SymbolTable *globalSymTable;
 extern std::unordered_map<std::string, std::string> globalTypeList;
 
-enum ClassErr {OK, MULTI_DEF, CYCLIC_BAD_INHERITANCE};
+enum ScopeErr {OK};
 
-ClassErr setupClasses(void);
+ScopeErr buildScope(void);
 
 #endif //__CLASSINHERITANCE_H_

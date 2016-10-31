@@ -40,39 +40,69 @@ public:
     SymNode *symRoot;
     SymNode *cur;
 
-    SymbolTable(std::string scopeName);
+	SymbolTable(std::string scopeName)
+	{
+		return;
+	}
         
     /*
         *Make a new scope (let, method, class) in the current scope
         */ 
-    void addScope(std::string newScope);
+	void addScope(std::string newScope)
+	{
+		return;
+	}
         
     /*
         * Enter a scope, making sure it exists first
         */
-	void enterScope(std::string scope);
+	void enterScope(std::string scope)
+	{
+		return;
+	}
         
     /*
         * Make a new scope in the current scope and enter it
         */
-	void addAndEnterScope(std::string scope);
+	void addAndEnterScope(std::string scope)
+	{
+		return;
+	}
 
     /*
         * Get the name of the current scope
         */
-    std::string getScope();
+	std::string getScope()
+	{
+		return "";
+	}
 
     /*
         *
         */
-    void leaveScope();
+	void leaveScope()
+	{
+		return;
+	}
 
-	void addVariable(std::string name, std::string type);
+	void addVariable(std::string name, std::string type)
+	{
+		return;
+	}
 
-	void addMethod(std::string name, std::vector<std::string> argTypes, std::string returnType);
+	void addMethod(std::string name, std::vector<std::string> argTypes, std::string returnType)
+	{
+		return;
+	}
 
-	SymTableVariable *getVariable(std::string name);
-    SymTableMethod *getMethod(std::string name);
+	SymTableVariable *getVariable(std::string name)
+	{
+		return nullptr;
+	}
+	SymTableMethod *getMethod(std::string name)
+	{
+		return nullptr;
+	}
 
 };
 

@@ -7,11 +7,18 @@
 
 void semant()
 {
-    //TODO:Call stuff for Class inheritence checking
-    //ERROR CHECKING POR FAVOR
+    //setup the classes
+	globalSymTable = new SymbolTable("Object");
+	switch (setupClasses()) {
+	case ClassErr::OK:
+		break;
+	case ClassErr::MULTI_DEF:
+		break;
+	case ClassErr::CYCLIC_BAD_INHERITANCE:
+		break;
+	}
     //checkClassInheritance();
     //TODO:Build symbol table and scoping
     
     //TODO:Call stuff for type checking 
 }
-
