@@ -11,6 +11,7 @@ ScopeErr buildScope(void)
 	return buildScope_recursive(root);
 }
 
+//TODO: error check this like crazy
 ScopeErr buildScope_recursive(Node *ASTNode)
 {
 	if (ASTNode == nullptr) {
@@ -52,6 +53,18 @@ ScopeErr buildScope_recursive(Node *ASTNode)
 		case NodeType::AST_FEATURE_METHOD:
 		{
 			string methodName = ((Node *)child->getChildren()[0])->value;
+			string returnType = ((Node *)child->getChildren()[2])->value;
+			vector<Tree *>formals = ((Node *)child->getChildren()[1])->getChildren();
+
+			//get formal types for method
+			vector<string> formalTypes;
+			for (auto formal : formals) {
+				string formalType = formal->getChildren[1]->value;
+				formalTypes.push_back(formalType);
+			}
+
+			//add the method to current scope, then ednter it before processing children
+			globalSymTable->addMethod(methodName, formalTypes, returnType);
 			globalSymTable->addAndEnterScope(methodName);
 			break;
 		}

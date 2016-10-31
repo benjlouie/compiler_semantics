@@ -4,6 +4,7 @@
 #include "ast.h"
 #include "symbolTable.h"
 #include "classInheritance.h"
+#include "scoping.h"
 #include <unordered_map>
 
 extern SymbolTable *globalSymTable;
