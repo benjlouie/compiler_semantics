@@ -15,7 +15,7 @@ ScopeErr buildScope(void)
 ScopeErr buildScope_recursive(Node *ASTNode)
 {
 	if (ASTNode == nullptr) {
-		return ScopeErr::OK;
+		return ScopeErr::SCOPE_OK;
 	}
 
 	auto classNodes = ASTNode->getChildren();
@@ -59,7 +59,7 @@ ScopeErr buildScope_recursive(Node *ASTNode)
 			//get formal types for method
 			vector<string> formalTypes;
 			for (auto formal : formals) {
-				string formalType = formal->getChildren[1]->value;
+				string formalType = ((Node *)formal->getChildren()[1])->value;
 				formalTypes.push_back(formalType);
 			}
 
@@ -93,7 +93,7 @@ ScopeErr buildScope_recursive(Node *ASTNode)
 
 		//recurse to children
 		switch (buildScope_recursive(child)) {
-		case ScopeErr::OK:
+		case ScopeErr::SCOPE_OK:
 			break;
 		}
 
@@ -101,5 +101,5 @@ ScopeErr buildScope_recursive(Node *ASTNode)
 		globalSymTable->leaveScope();
 	}
 
-	return ScopeErr::OK;
+	return ScopeErr::SCOPE_OK;
 }
