@@ -1,7 +1,7 @@
 #ifndef __SEMANT_H_
 #define __SEMANT_H_
 
-#include "ast.h"
+#include "../src/ast.h"
 #include "symbolTable.h"
 #include "classInheritance.h"
 #include "scoping.h"

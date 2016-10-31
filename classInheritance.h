@@ -1,7 +1,7 @@
 #ifndef __CLASSINHERITANCE_H_
 #define __CLASSINHERITANCE_H_
 
-#include "ast.h"
+#include "../src/ast.h"
 #include "symbolTable.h"
 #include <unordered_map>
 #include <queue>

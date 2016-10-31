@@ -1,7 +1,7 @@
 #ifndef __SCOPING_H_
 #define __SCOPING_H_
 
-#include "ast.h"
+#include "../src/ast.h"
 #include "symbolTable.h"
 
 extern Node *root;

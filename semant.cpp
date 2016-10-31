@@ -2,7 +2,7 @@
 #ifdef __linux__
 #include "../src/semant.h"
 #else
-#include "semant.h"
+#include "../compiler_semantics/semant.h"
 #endif
 
 void semant()
