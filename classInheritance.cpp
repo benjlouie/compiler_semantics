@@ -5,6 +5,7 @@
 #endif
 
 void scopeClasses(unordered_map<string, vector<string>> &classMap, string &start);
+void setupBuiltinClasses(void);
 
 ClassErr setupClasses(void)
 {
@@ -12,8 +13,12 @@ ClassErr setupClasses(void)
 	//<inherits, list of classes>
 	unordered_map<string, vector<string>> classMap;
 
-	//TODO: setup Int, Bool, String, IO classes
-	//setup symboltable methods with them too
+	//setup symboltable methods builtin Classes
+	setupBuiltinClasses();
+	//setup ClassMap too
+	classMap["Object"].push_back("IO");
+	classMap["Object"].push_back("String");
+
 
 	for (Tree *tchild : classNodes) {
 		Node *child = (Node *)tchild;
@@ -32,28 +37,6 @@ ClassErr setupClasses(void)
 	}
 
 	scopeClasses(classMap, string("Object"));
-	/*
-	queue<string> inheritsQueue;
-	//setup queue
-	for (string className : classMap["Object"]) {
-		inheritsQueue.push(className);
-	}
-	classMap.erase("Object");
-
-	while (!inheritsQueue.empty()) {
-		size_t len = inheritsQueue.size();
-		for (size_t i = 0; i < len; i++) {
-			string currentClass = inheritsQueue.front();
-			inheritsQueue.pop();
-			if (classMap.count(currentClass) > 0) {
-				for (string className : classMap[currentClass]) {
-					inheritsQueue.push(className);
-				}
-				classMap.erase(currentClass);
-			}
-		}
-	}
-	*/
 	//all classes should be checked now
 	if (classMap.size() > 0) {
 		//TODO: cyclic inheritance or undefined inheritance errors
@@ -66,11 +49,95 @@ void scopeClasses(unordered_map<string, vector<string>> &classMap, string &start
 	if (classMap.count(start) == 0) {
 		return;
 	}
-	//TODO: check this once SymbolTable is done
-	for (string className : classMap[start]) {
-		globalSymTable->addAndEnterScope(className);
+
+	auto inheritsList = classMap[start];
+	for (string className : inheritsList) {
+		if (className == "IO" || className == "String") { //TODO: figure out wayt to remove special case for built ins
+			globalSymTable->enterScope(className);
+		}
+		else {
+			globalSymTable->addAndEnterScope(className);
+		}
 		scopeClasses(classMap, className);
 		globalSymTable->leaveScope();
 	}
 	classMap.erase(start);
+}
+
+void setupBuiltinClasses(void)
+{
+	vector<string> argList;
+	//get back to Object
+	while (globalSymTable->getScope() != "Object") {
+		globalSymTable->leaveScope();
+	}
+	//Object
+	//abort()
+	globalSymTable->addMethod("abort", argList, "Object");
+	globalSymTable->addScope("abort");
+	//type_name()
+	globalSymTable->addMethod("type_name", argList, "String");
+	globalSymTable->addScope("type_name");
+	//copy()
+	globalSymTable->addMethod("copy", argList, "SELF_TYPE");
+	globalSymTable->addScope("copy");
+	globalTypeList["Object"] = ""; //Object doesn't inherit from anything
+
+	//IO
+	globalSymTable->addAndEnterScope("IO");
+	//out_string()
+	argList.push_back("String");
+	globalSymTable->addMethod("out_string", argList, "SELF_TYPE");
+	argList.pop_back();
+	globalSymTable->addAndEnterScope("out_string");
+	globalSymTable->addVariable("x", "String");
+	globalSymTable->leaveScope();
+	//out_int()
+	argList.push_back("Int");
+	globalSymTable->addMethod("out_int", argList, "SELF_TYPE");
+	argList.pop_back();
+	globalSymTable->addAndEnterScope("out_int");
+	globalSymTable->addVariable("x", "Int");
+	globalSymTable->leaveScope();
+	//in_string()
+	globalSymTable->addMethod("in_string", argList, "String");
+	globalSymTable->addScope("in_string");
+	//in_int()
+	globalSymTable->addMethod("in_int", argList, "Int");
+	globalSymTable->addScope("in_int");
+	globalTypeList["IO"] = "Object";
+	globalSymTable->leaveScope();
+
+	//String
+	globalSymTable->addAndEnterScope("String");
+	//length()
+	globalSymTable->addMethod("length", argList, "Int");
+	globalSymTable->addScope("length");
+	//concat()
+	argList.push_back("String");
+	globalSymTable->addMethod("concat", argList, "String");
+	argList.pop_back();
+	globalSymTable->addAndEnterScope("concat");
+	globalSymTable->addVariable("s", "String");
+	globalSymTable->leaveScope();
+	//substr()
+	argList.push_back("Int");
+	argList.push_back("Int");
+	globalSymTable->addMethod("substr", argList, "String");
+	argList.pop_back();
+	argList.pop_back();
+	globalSymTable->addAndEnterScope("substr");
+	globalSymTable->addVariable("i", "Int");
+	globalSymTable->addVariable("l", "Int");
+	globalSymTable->leaveScope();
+	globalTypeList["String"] = "Object";
+	globalSymTable->leaveScope();
+
+	//TODO: do we add Int and Bool to scope? they can't be inherited from so maybe not?
+	//Int
+	//Bool
+	//just add to type list
+	globalTypeList["Int"] = "Object";
+	globalTypeList["Bool"] = "Object";
+
 }

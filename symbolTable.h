@@ -35,6 +35,7 @@ public:
         //Where we came from 
         struct SymNode *parent;
         //
+		//TODO(BEN): change this to unordered_map<string, struct SymNode *> so children can quickly be accessed/queried
 		std::vector<struct SymNode *> children;
 	} SymNode;
     SymNode *symRoot;

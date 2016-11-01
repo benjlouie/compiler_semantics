@@ -88,19 +88,26 @@ void SymbolTable::leaveScope()
 
 bool SymbolTable::addVariable(string name, string type)
 {
-	if (cur->variables.find(name) == cur->variables.end()) {
+	/*if (cur->variables.find(name) == cur->variables.end()) {
 		throw exception("Cannot add variable, already exists in current scope");
 		return false;
 	}
+
 	SymTableVariable v;
 	v.type = type;
 	cur->variables[name] = v;
+	return true;
+	*/
+	if (cur->variables.count(name) > 0) {
+		return false; //already exists
+	}
+	cur->variables[name].type = type;
 	return true;
 }
 
 bool SymbolTable::addMethod(string name, vector<string> argTypes, string returnType)
 {
-	if (cur->variables.find(name) == cur->variables.end()) {
+	/*if (cur->variables.find(name) == cur->variables.end()) {
 		throw exception("Cannot add method, already exists in current scope");
 		return false;
 	}
@@ -108,6 +115,14 @@ bool SymbolTable::addMethod(string name, vector<string> argTypes, string returnT
 	m.returnType = returnType;
 	m.argTypes = argTypes;
 	cur->methods[name] = m;
+	return true;
+	*/
+	if (cur->methods.count(name) > 0) {
+		return false; //method already exists
+	}
+	SymTableMethod &method = cur->methods[name];
+	method.argTypes = argTypes;
+	method.returnType = returnType;
 	return true;
 }
 
