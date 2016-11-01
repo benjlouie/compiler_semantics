@@ -69,9 +69,9 @@ public:
         */
 	void leaveScope();
 
-	void addVariable(std::string name, std::string type);
+	bool addVariable(std::string name, std::string type);
 
-	void addMethod(std::string name, std::vector<std::string> argTypes, std::string returnType);
+	bool addMethod(std::string name, std::vector<std::string> argTypes, std::string returnType);
 
 	SymTableVariable *getVariable(std::string name);
 
