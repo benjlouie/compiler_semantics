@@ -1,8 +1,4 @@
-#ifdef __linux__
-#include "../src/classInheritance.h"
-#else
-#include "classInheritance.h"
-#endif
+#include "../compiler_semantics/classInheritance.h"
 
 void scopeClasses(unordered_map<string, vector<string>> &classMap, string &start);
 
@@ -31,7 +27,8 @@ ClassErr setupClasses(void)
 		classMap[inherits].push_back(className);
 	}
 
-	scopeClasses(classMap, string("Object"));
+	string startingClass = "Object";
+	scopeClasses(classMap, startingClass);
 	/*
 	queue<string> inheritsQueue;
 	//setup queue
