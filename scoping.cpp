@@ -1,8 +1,4 @@
-#ifdef __linux__
-#include "../src/scoping.h"
-#else
-#include "scoping.h"
-#endif
+#include "../compiler_semantics/scoping.h"
 
 ScopeErr buildScope_recursive(Node *ASTNode);
 
@@ -89,6 +85,8 @@ ScopeErr buildScope_recursive(Node *ASTNode)
 			globalSymTable->addVariable(formalName, formalType);
 			break;
 		}
+		default:
+			break;
 		}
 
 		//recurse to children

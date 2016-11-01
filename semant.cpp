@@ -1,9 +1,5 @@
 
-#ifdef __linux__
-#include "../src/semant.h"
-#else
 #include "../compiler_semantics/semant.h"
-#endif
 
 void semant()
 {
