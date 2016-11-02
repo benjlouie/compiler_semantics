@@ -2,18 +2,21 @@
 #include "../src/scoping.h"
 #else
 #include "scoping.h"
+#include <iostream>
+#include <string>
 #endif
 
-ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount);
+ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned &currentCaseCount);
 
 ScopeErr buildScope(void)
 {
 	unsigned letCount = 0;
-	return buildScope_recursive(root, letCount);
+	unsigned caseCount = 0;
+	return buildScope_recursive(root, letCount, caseCount);
 }
 
 //TODO: error check this like crazy
-ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount)
+ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned &currentCaseCount)
 {
 	if (ASTNode == nullptr) {
 		return ScopeErr::SCOPE_OK;
@@ -49,9 +52,12 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount)
 			break;
 		}
 		case NodeType::AST_LET:
- 			globalSymTable->addAndEnterScope("let" + to_string(currentLetCount));
-			enteredNewScope = true;
-			currentLetCount++;
+				
+			if ( ASTNode->type != NodeType::AST_LET) {
+				globalSymTable->addAndEnterScope("let" + to_string(currentLetCount));
+				enteredNewScope = true;
+				currentLetCount++;
+			}
 			break;
 		case NodeType::AST_FEATURE_METHOD:
 		{
@@ -67,7 +73,10 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount)
 			}
 
 			//add the method to current scope, then enter it before processing children
-			globalSymTable->addMethod(methodName, formalTypes, returnType); //TODO: check return (tells if mult def)
+			if (!globalSymTable->addMethod(methodName, formalTypes, returnType)) { //TODO: check return (tells if mult def)
+				cout << "error adding method '" << methodName << "' located on line:" << child->lineNumber << " method already exists" << endl;
+				continue;
+			}
 			globalSymTable->addAndEnterScope(methodName);
 			enteredNewScope = true;
 			break;
@@ -76,22 +85,39 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount)
 		{
 			string attrName = ((Node *)child->getChildren()[0])->value;
 			string attrType = ((Node *)child->getChildren()[1])->value;
-			globalSymTable->addVariable(attrName, attrType); //TODO: check return (tells if mult def)
+			if (!globalSymTable->addVariable(attrName, attrType)) { //TODO: check return (tells if mult def)
+				cout << "error adding variable '" << attrName << "' located on line:" << child->lineNumber << " variable already exists" << endl;
+			}
 			break;
 		}
 		case NodeType::AST_IDTYPEEXPR: //the variable declared by the a let expr
 		{
 			string varName = ((Node *)child->getChildren()[0])->value;
 			string varType = ((Node *)child->getChildren()[1])->value;
-			globalSymTable->addVariable(varName, varType); //TODO: check return (tells if mult def)
+			if (!globalSymTable->addVariable(varName, varType)) { //TODO: check return (tells if mult def)
+				cout << "error adding variable '" << varName << "' located on line:" << child->lineNumber << " variable already exists" << endl;
+			}
 			break;
 		}
 		case NodeType::AST_FORMAL:
 		{
 			string formalName = ((Node *)child->getChildren()[0])->value;
 			string formalType = ((Node *)child->getChildren()[1])->value;
-			globalSymTable->addVariable(formalName, formalType); //TODO: check return (tells if mult def)
+			if (!globalSymTable->addVariable(formalName, formalType)) { //TODO: check return (tells if mult def)
+				cout << "error adding variable '" << formalName << "' located on line:" << child->lineNumber << " variable already exists" << endl;
+			}
 			break;
+		}
+		case NodeType::AST_CASE: 
+		{
+			globalSymTable->addAndEnterScope("case" + to_string(currentCaseCount));
+			string caseIDName = ((Node *)child->getChildren()[0])->value;
+			string caseIDType = ((Node *)child->getChildren()[1])->value;
+			globalSymTable->addVariable(caseIDName, caseIDType);
+			enteredNewScope = true;
+			currentCaseCount++;
+			break;
+
 		}
 		}
 
@@ -99,7 +125,8 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount)
 		if (enteredNewScope) {
 			
 			unsigned newLetCount = 0;
-			switch (buildScope_recursive(child, newLetCount)) {
+			unsigned newCaseCount = 0;
+			switch (buildScope_recursive(child, newLetCount, newCaseCount)) {
 			case ScopeErr::SCOPE_OK:
 				break;
 			}
@@ -108,7 +135,7 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount)
 			globalSymTable->leaveScope();
 		}
 		else {
-			switch (buildScope_recursive(child, currentLetCount)) {
+			switch (buildScope_recursive(child, currentLetCount, currentCaseCount)) {
 			case ScopeErr::SCOPE_OK:
 				break;
 			}

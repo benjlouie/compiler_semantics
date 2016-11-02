@@ -1,6 +1,9 @@
 #include "symbolTable.h"
 #include <stdexcept>
 #include <queue>
+#include <iostream>
+#include <stdio.h>
+#include <string>
 using namespace std;
 
 SymbolTable::SymbolTable(string scopeName) {
