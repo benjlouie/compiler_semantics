@@ -4,6 +4,7 @@
 TypeErr typeCheck(void);
 TypeErr typeCheck_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned &currentCaseCount);
 TypeErr deSwitch(Node *node);
+string lub(vector<string> classes);
 
 TypeErr typeCheck(void)
 {
@@ -120,8 +121,10 @@ TypeErr deSwitch(Node *node)
 		if (iftest->valType != "Bool") {
 			cerr << "ERROR IN IF TEST" << endl;
 		}
-		//TODO then else stuff 
-		//forest will node->type = lub(vector<String> types);
+		vector<string> types;
+		types.push_back(thenchild->valType);
+		types.push_back(elsechild->valType);
+		node->valType = lub(types);
 
 		break;
 	}
@@ -177,7 +180,7 @@ TypeErr deSwitch(Node *node)
 		Node *right = (Node *)node->getRightChild();
 		if (left->valType != "Int") {
 			//TODO: Add Error Here
-			cerr << "ERROR IN " << node->type << " WITH TYPES"<< endl;
+			cerr << "ERROR IN " << enum2string(node->type) << " WITH TYPES"<< endl;
 			cerr << "LEFT  TYPE IS " << left->valType << endl;
 			cerr << "RIGHT TYPE IS " << right ->valType << endl;
 			cerr << endl;
@@ -185,7 +188,7 @@ TypeErr deSwitch(Node *node)
 		}
 		else if (right->valType != "Int"){
 			//TODO: Add Error Here
-			cerr << "ERROR IN " << node->type << " WITH TYPES" << endl;
+			cerr << "ERROR IN " << enum2string(node->type) << " WITH TYPES" << endl;
 			cerr << "LEFT  TYPE IS " << left->valType << endl;
 			cerr << "RIGHT TYPE IS " << right->valType << endl;
 			cerr << endl;
@@ -307,9 +310,24 @@ TypeErr deSwitch(Node *node)
 		}
 		break;
 	}
-	case NodeType::AST_CASESTATEMENT: //check children of AST_CASELIST, get lub(children)
-		//TODO forest lub(Vector<String> types);
+	case NodeType::AST_CASESTATEMENT: {
+		vector<string> types;
+		Node *case_node;
+		for (auto c : node->getChildren()[1]->getChildren()) {
+			case_node = (Node *) c;
+			types.push_back(case_node->valType);
+		}
+		node->valType = lub(types);
 		break;
+	}
+	case NodeType::AST_FEATURE_METHOD: {
+		Node *type = (Node *)node->getChildren()[2];
+		Node *expr = (Node *)node->getChildren()[3];
+		if (type->valType != expr->valType) {
+			cerr << "Type mismtach between declared type of method and derived type" << endl;
+		}
+		break;
+	}
 	case NodeType::AST_FEATURE_ATTRIBUTE: {
 		Node *expr = (Node *)node->getChildren()[2];
 		Node *type = (Node *)node->getChildren()[1];
@@ -324,4 +342,51 @@ TypeErr deSwitch(Node *node)
 	}
 
 	return TypeErr::TYPE_OK;
+}
+
+/* This function does not perserve formal classes, so don't use it after
+ * calling this
+ */
+string lub(vector<string> classes) {
+	/* gotta get the distances to Object first */
+	vector<int> distances(classes.size()); //all init to 0
+	string tmp;
+	int n = classes.size(); //we'll be using this a whole lot
+	for (int i = 0; i < n; i++) {
+		tmp = classes[i];
+		while (tmp != "Object") {
+			tmp = globalTypeList[tmp];
+			distances[i]++;
+		}
+	}
+	int min = distances[0];
+	for (int i = 1; i < n; i++) {
+		if (distances[i] < min)
+			min = distances[i];
+	}
+	/* check if object is lub */
+	if (min == 0)
+		return "Object";
+
+	/* bring everything to the same distance to object */
+	for (int i = 0; i < n; i++) {
+		while (distances[i] != min) {
+			classes[i] = globalTypeList[classes[i]];
+			distances[i]--;
+		}
+	}
+
+	/* check if they're all equal, if not move everything up one in the hierarchy */
+	bool check;
+	while (true) { //eventually everything reaches object
+		check = true;
+		for (int i = 0; i < n - 1; i++) {
+			check &= classes[i] == classes[i + 1];
+		}
+		if (check)
+			return classes[0];
+		for (int i = 0; i < n; i++)
+			classes[i] = globalTypeList[classes[i]];
+	}
+	return ""; //this will never happen
 }
