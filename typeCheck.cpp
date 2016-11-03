@@ -292,8 +292,10 @@ TypeErr deSwitch(Node *node)
 		}
 		break;
 	}
-	case NodeType::AST_DISPATCH:
+	case NodeType::AST_DISPATCH: {
+
 		break;
+	}
 	case NodeType::AST_EXPRSEMILIST: {
 		auto children = node->getChildren();
 		Node * lastchild = (Node *)children[children.size()-1];

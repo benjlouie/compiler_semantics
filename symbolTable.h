@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
+extern std::unordered_map<std::string, std::string> globalTypeList;
 
 class SymTableVariable
 {
@@ -79,6 +80,8 @@ public:
 	SymTableVariable *getVariable(std::string name);
 
 	SymTableMethod *getMethod(std::string name);
+
+	SymTableMethod *getMethodByClass(std::string method, std::string cls);
 
 };
 

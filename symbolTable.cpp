@@ -133,7 +133,7 @@ SymTableVariable *SymbolTable::getVariable(string name)
 {
 	SymNode *scanner = cur;
 	while (scanner != nullptr) {
-		if (scanner->variables.find(name) != cur->variables.end()) {
+		if (scanner->variables.count(name) > 0) {
 			return &(scanner->variables[name]);
 		}
 		scanner = scanner->parent;
@@ -145,11 +145,45 @@ SymTableMethod *SymbolTable::getMethod(string name)
 {
 	SymNode *scanner = cur;
 	while (scanner != nullptr) {
-		if (scanner->methods.find(name) != cur->methods.end()) {
+		if (scanner->methods.count(name) > 0) {
 			return &(scanner->methods[name]);
 		}
 		scanner = scanner->parent;
 	}
 	throw exception("Cannot find method");
+	return nullptr;
+}
+
+SymTableMethod *SymbolTable::getMethodByClass(string method, string cls) {
+	/* find the path to cls*/
+	SymNode *searcher = symRoot;
+	string tmp = cls;
+	vector<string> path;
+	while (tmp != "Object") {
+		path.push_back(tmp);
+		tmp = globalTypeList[tmp];
+	}
+
+	/* send searcher through path to the correct class */
+	for (int i = path.size() - 1; i >= 0; i--) {
+		for (auto c : searcher->children) {
+			if (c->name == path[i]) {
+				searcher = c;
+				break;
+			}
+		}
+	}
+	if (searcher->name != cls) {
+		cerr << "Error finding class in getMethod(string, string)" << endl;
+		exit(-1);
+	}
+
+	/* search up hierarchy for method */
+	while (searcher != nullptr) {
+		if (searcher->methods.count(method) > 0) {
+			return &(searcher->methods[method]);
+		}
+		searcher = searcher->parent;
+	}
 	return nullptr;
 }
