@@ -1,10 +1,4 @@
-#ifdef __linux__
-#include "../src/scoping.h"
-#else
-#include "scoping.h"
-#include <iostream>
-#include <string>
-#endif
+#include "../compiler_semantics/scoping.h"
 
 ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned &currentCaseCount);
 
@@ -117,8 +111,9 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned
 			enteredNewScope = true;
 			currentCaseCount++;
 			break;
-
 		}
+		default:
+			break;
 		}
 
 		//recurse to children
