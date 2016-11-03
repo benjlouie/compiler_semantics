@@ -293,7 +293,50 @@ TypeErr deSwitch(Node *node)
 		break;
 	}
 	case NodeType::AST_DISPATCH: {
+		Node *caller = (Node *)node->getChildren()[0];
+		Node *atType = (Node *)node->getChildren()[1];
+		Node *id = (Node *)node->getChildren()[2];
+		Node *params = (Node *)node->getChildren()[3];
+		SymTableMethod *method;
 
+		/* Case 1: calling a method within the class*/
+		if (caller->type == NodeType::AST_NULL) {
+			method = globalSymTable->getMethod(id->value);
+		}
+		else if (atType->type == NodeType::AST_NULL) { //specify an object
+			method = globalSymTable->getMethodByClass(id->value, caller->valType);
+		}
+		else { //Specify which class to use
+			method = globalSymTable->getMethodByClass(id->value, atType->valType);
+		}
+
+		if (method == nullptr) {
+			cerr << "Cannot find method '" << id->value << "' in current scope" << endl;
+			node->valType = "Object";
+			break;
+		}
+
+		/* build a vector with types of actual parameters*/
+		vector<string> param_types;
+		Node *actual;
+		for (int i = params->getChildren().size() - 1; i >= 0; i--) { //they'll be backwards if we do i 0 to n
+			actual = (Node *)params->getChildren()[i];
+			param_types.push_back(actual->valType);
+		}
+
+		/* error check */
+		if (param_types.size() != method->argTypes.size()) {
+			cerr << "Mismatch in number of expected parameters vs given" << endl;
+		}
+		else {
+			for (int i = 0; i < param_types.size(); i++) {
+				if (param_types[i] != method->argTypes[i]) {
+					cerr << "Type of parameter given: " << param_types[i] << ", expected: " << method->argTypes[i] << endl;
+				}
+			}
+		}
+		node->valType = method->returnType;
+		
 		break;
 	}
 	case NodeType::AST_EXPRSEMILIST: {

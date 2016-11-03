@@ -138,7 +138,6 @@ SymTableVariable *SymbolTable::getVariable(string name)
 		}
 		scanner = scanner->parent;
 	}
-	throw exception("Cannot find variable");
 	return nullptr;
 }
 SymTableMethod *SymbolTable::getMethod(string name)
@@ -150,7 +149,6 @@ SymTableMethod *SymbolTable::getMethod(string name)
 		}
 		scanner = scanner->parent;
 	}
-	throw exception("Cannot find method");
 	return nullptr;
 }
 
