@@ -4,6 +4,8 @@
 #include "../src/ast.h"
 #include "symbolTable.h"
 #include "typeCheck.h"
+#include <iostream>
+
 
 extern Node *root;
 extern SymbolTable *globalSymTable;

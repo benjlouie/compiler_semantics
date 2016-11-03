@@ -124,7 +124,15 @@ TypeErr deSwitch(Node *node)
 		vector<string> types;
 		types.push_back(thenchild->valType);
 		types.push_back(elsechild->valType);
-		node->valType = lub(types);
+		
+		//Checking to make sure we have the types before calling Lub
+		if (globalTypeList.count(types[0]) == 0 || globalTypeList.count(types[1]) == 0) {
+			cerr << "Undeclared type in IF-Then-Else Block" << endl;
+			node->valType = "Object";
+		}
+		else {
+			node->valType = lub(types);
+		}
 
 		break;
 	}
@@ -140,10 +148,11 @@ TypeErr deSwitch(Node *node)
 		//check for BOOL
 		Node* child = (Node *)node->getChild();
 		if (child->valType != "Bool") {
-			cerr << "TYPE ERROR IN AST_TILDE" << endl;
+			cerr << "TYPE ERROR IN AST_NOT" << endl;
+			node->valType = "Bool";
 		}
 		else {
-			child->valType = "Bool";
+			node->valType = "Bool";
 		}
 		break;
 	}
@@ -362,7 +371,23 @@ TypeErr deSwitch(Node *node)
 			case_node = (Node *) c;
 			types.push_back(case_node->valType);
 		}
-		node->valType = lub(types);
+
+		bool badType = false;
+		//for-loop to check each type
+		for (string type : types) {
+			if (globalTypeList.count(type) == 0) {
+				badType = true;
+				break;
+			}
+		}
+
+		if (badType) {
+			cerr << "Undeclared type in Case Statement" << endl;
+			node->valType = "Object";
+		}
+		else {
+			node->valType = lub(types);
+		}
 		break;
 	}
 	case NodeType::AST_FEATURE_METHOD: {
@@ -396,6 +421,8 @@ string lub(vector<string> classes) {
 	/* gotta get the distances to Object first */
 	vector<int> distances(classes.size()); //all init to 0
 	string tmp;
+
+	//TYPECHECK MOTHERFUCKER YOU SHOULD USE IT
 	int n = classes.size(); //we'll be using this a whole lot
 	for (int i = 0; i < n; i++) {
 		tmp = classes[i];

@@ -28,6 +28,6 @@ void semant()
 	case TypeErr::TYPE_OK:
 		break;
 	}
-	//root->print();
+	root->print();
     //TODO:Call stuff for type checking 
 }
