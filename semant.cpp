@@ -28,5 +28,10 @@ void semant()
 		break;
 	}
 
+	switch (typeCheck()) {
+	case TypeErr::TYPE_OK:
+		break;
+	}
+
     //TODO:Call stuff for type checking 
 }
