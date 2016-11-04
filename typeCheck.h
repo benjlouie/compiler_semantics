@@ -6,6 +6,7 @@
 extern Node *root;
 extern SymbolTable *globalSymTable;
 extern std::unordered_map<std::string, std::string> globalTypeList;
+extern int numErrors;
 
 enum TypeErr { TYPE_OK };
 
