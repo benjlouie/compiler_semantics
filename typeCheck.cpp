@@ -141,7 +141,12 @@ TypeErr deSwitch(Node *node)
 		break;
 	case NodeType::AST_NEW: {
 		Node * child = (Node *)node->getChild();
-		node->valType = child->valType;
+		if (child->valType == "SELF_TYPE") {
+			node->valType = globalSymTable->getCurrentClass();//TODO create this	
+		}
+		else {
+			node->valType = child->valType;
+		}
 		break;
 	}
 	case NodeType::AST_NOT: {
@@ -267,7 +272,10 @@ TypeErr deSwitch(Node *node)
 		node->getChildren();
 		Node *left = (Node *)node->getLeftChild();
 		Node *right = (Node *)node->getRightChild();
-		if (left->valType != right->valType) {
+		//if (left->valType != right->valType) {
+		if(!globalSymTable->isSubClass(left->valType,right->valType)) {
+			//TODO write this method 
+			//TODO: Add Error Here
 			cerr << "ERROR WITH TYPES IN AST_LARROW" << endl;
 			cerr << "LEFT  TYPE IS " << left->valType << endl;
 			cerr << "RIGHT TYPE IS " << right->valType << endl;
@@ -284,7 +292,12 @@ TypeErr deSwitch(Node *node)
 		auto children = node->getChildren();
 		Node * letexpression  = (Node *)children[1];
 
-		node->valType = letexpression->valType;
+		if (letexpression->valType == "SELF_TYPE") {
+			node->valType = globalSymTable->getCurrentClass(); //TODO forest write this
+		}
+		else {
+			node->valType = letexpression->valType;
+		}
 		break;
 	}
 	case NodeType::AST_TILDE: {
@@ -332,7 +345,12 @@ TypeErr deSwitch(Node *node)
 		Node *actual;
 		for (int i = params->getChildren().size() - 1; i >= 0; i--) { //they'll be backwards if we do i 0 to n
 			actual = (Node *)params->getChildren()[i];
-			param_types.push_back(actual->valType);
+			if (actual->valType == "SELF_TYPE") {
+				param_types.push_back(globalSymTable->getCurrentClass());//TODO forest write this
+			}
+			else {
+				param_types.push_back(actual->valType);
+			}
 		}
 
 		/* error check */
@@ -342,14 +360,20 @@ TypeErr deSwitch(Node *node)
 		}
 		else {
 			for (int i = 0; i < param_types.size(); i++) {
-				if (param_types[i] != method->argTypes[i]) {
+				//if (param_types[i] != method->argTypes[i]) {
+				if (!globalSymTable->isSubClass(param_types[i], method->argTypes[i])) {//TODO write this method
 					cerr << "Type of parameter given: " << param_types[i] << ", expected: " << method->argTypes[i] << endl;
 					//TODO: numErrors++ here?
 				}
 			}
 		}
-		node->valType = method->returnType;
 		
+		if (method->returnType == "SELF_TYPE") {
+			node->valType = globalSymTable->getCurrentClass();//TODO this might be weird
+		}
+		else {
+			node->valType = method->returnType;
+		}
 		break;
 	}
 	case NodeType::AST_EXPRSEMILIST: {
