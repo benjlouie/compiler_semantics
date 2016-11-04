@@ -27,8 +27,6 @@ class SymbolTable
 {
 public: 
     typedef struct SymNode {
-		unsigned int letCount;
-		unsigned int caseCount;
         //Name of the node
         std::string name;
         //The variables in this node and their values

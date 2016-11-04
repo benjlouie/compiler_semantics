@@ -6,6 +6,11 @@ ScopeErr buildScope(void)
 {
 	unsigned letCount = 0;
 	unsigned caseCount = 0;
+	//go back to Object scope
+	while (globalSymTable->getScope() != "Object") {
+		globalSymTable->leaveScope();
+	}
+
 	return buildScope_recursive(root, letCount, caseCount);
 }
 
@@ -67,8 +72,9 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned
 			}
 
 			//add the method to current scope, then enter it before processing children
-			if (!globalSymTable->addMethod(methodName, formalTypes, returnType)) { //TODO: check return (tells if mult def)
+			if (!globalSymTable->addMethod(methodName, formalTypes, returnType)) {
 				cout << "error adding method '" << methodName << "' located on line:" << child->lineNumber << " method already exists" << endl;
+				numErrors++;
 				continue;
 			}
 			globalSymTable->addAndEnterScope(methodName);
@@ -79,8 +85,9 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned
 		{
 			string attrName = ((Node *)child->getChildren()[0])->value;
 			string attrType = ((Node *)child->getChildren()[1])->value;
-			if (!globalSymTable->addVariable(attrName, attrType)) { //TODO: check return (tells if mult def)
+			if (!globalSymTable->addVariable(attrName, attrType)) {
 				cout << "error adding variable '" << attrName << "' located on line:" << child->lineNumber << " variable already exists" << endl;
+				numErrors++;
 			}
 			break;
 		}
@@ -88,8 +95,9 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned
 		{
 			string varName = ((Node *)child->getChildren()[0])->value;
 			string varType = ((Node *)child->getChildren()[1])->value;
-			if (!globalSymTable->addVariable(varName, varType)) { //TODO: check return (tells if mult def)
+			if (!globalSymTable->addVariable(varName, varType)) {
 				cout << "error adding variable '" << varName << "' located on line:" << child->lineNumber << " variable already exists" << endl;
+				numErrors++;
 			}
 			break;
 		}
@@ -97,8 +105,9 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned
 		{
 			string formalName = ((Node *)child->getChildren()[0])->value;
 			string formalType = ((Node *)child->getChildren()[1])->value;
-			if (!globalSymTable->addVariable(formalName, formalType)) { //TODO: check return (tells if mult def)
+			if (!globalSymTable->addVariable(formalName, formalType)) {
 				cout << "error adding variable '" << formalName << "' located on line:" << child->lineNumber << " variable already exists" << endl;
+				numErrors++;
 			}
 			break;
 		}

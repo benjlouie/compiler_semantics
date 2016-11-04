@@ -10,11 +10,11 @@ void semant()
 	case ClassErr::OK:
 		break;
 	case ClassErr::MULTI_DEF:
-		printf("Error: Multiple class definitions\n");
+		cerr << "Class Error: Multiple class definitions\n";
 		exit(-1);
 		break;
 	case ClassErr::CYCLIC_BAD_INHERITANCE:
-		printf("Error: Bad or Cyclic class inheritance\n");
+		cerr << "Class Error: Bad or Cyclic class inheritance\n";
 		exit(-1);
 		break;
 	}
@@ -24,10 +24,23 @@ void semant()
 		break;
 	}
 
+	//check for Main and main()
+	if (globalTypeList.count("Main") == 0) {
+		cerr << "Class Error: No Main class\n";
+	}
+	//goto main class
+	while (globalSymTable->getScope() != "Object") {
+		globalSymTable->leaveScope();
+	}
+	globalSymTable->enterScope("Main");
+	if (globalSymTable->getMethod("main") == nullptr) {
+		cerr << "Class Error: No main method\n";
+	}
+
+
 	switch (typeCheck()) {
 	case TypeErr::TYPE_OK:
 		break;
 	}
 	root->print();
-    //TODO:Call stuff for type checking 
 }

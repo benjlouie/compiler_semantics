@@ -188,19 +188,19 @@ TypeErr deSwitch(Node *node)
 		Node *left = (Node *)node->getLeftChild();
 		Node *right = (Node *)node->getRightChild();
 		if (left->valType != "Int") {
-			//TODO: Add Error Here
 			cerr << "ERROR IN " << enum2string(node->type) << " WITH TYPES"<< endl;
 			cerr << "LEFT  TYPE IS " << left->valType << endl;
 			cerr << "RIGHT TYPE IS " << right ->valType << endl;
 			cerr << endl;
+			numErrors++;
 			node->valType = "Object";
 		}
 		else if (right->valType != "Int"){
-			//TODO: Add Error Here
 			cerr << "ERROR IN " << enum2string(node->type) << " WITH TYPES" << endl;
 			cerr << "LEFT  TYPE IS " << left->valType << endl;
 			cerr << "RIGHT TYPE IS " << right->valType << endl;
 			cerr << endl;
+			numErrors++;
 			node->valType = "Object";
 		}
 		else {
@@ -214,21 +214,21 @@ TypeErr deSwitch(Node *node)
 		Node *right = (Node *)node->getRightChild();
 		if (left->valType == "Bool" || left->valType == "Int" || left->valType == "String") {
 			if (right->valType != left->valType) {
-				//TODO: Add Error Here
 				cerr << "ERROR WITH TYPES IN AST_EQUAL" << endl;
 				cerr << "LEFT  TYPE IS " << left->valType << endl;
 				cerr << "RIGHT TYPE IS " << right->valType << endl;
 				cerr << endl;
+				numErrors++;
 				node->valType = "Object";
 			}
 		}
 		else if (right->valType == "Bool" || right->valType == "Int" || right->valType == "String") {
 			if (right->valType != left->valType) {
-				//TODO: Add Error Here
 				cerr << "ERROR WITH TYPES IN AST_EQUAL" << endl;
 				cerr << "LEFT  TYPE IS " << left->valType << endl;
 				cerr << "RIGHT TYPE IS " << right->valType << endl;
 				cerr << endl;
+				numErrors++;
 				node->valType = "Object";
 			}
 		}
@@ -243,19 +243,19 @@ TypeErr deSwitch(Node *node)
 		Node *left = (Node *)node->getLeftChild();
 		Node *right = (Node *)node->getRightChild();
 		if (left->valType != "Int") {
-			//TODO: Add Error Here
 			cerr << "ERROR WITH TYPES IN AST_COMPARE" << endl;
 			cerr << "LEFT  TYPE IS " << left->valType << endl;
 			cerr << "RIGHT TYPE IS " << right->valType << endl;
 			cerr << endl;
+			numErrors++;
 			node->valType = "Object";
 		}
 		else if (right->valType != "Int") {
-			//TODO: Add Error Here
 			cerr << "ERROR WITH TYPES IN AST_COMPARE" << endl;
 			cerr << "LEFT  TYPE IS " << left->valType << endl;
 			cerr << "RIGHT TYPE IS " << right->valType << endl;
 			cerr << endl;
+			numErrors++;
 			node->valType = "Object";
 		}
 		else {
@@ -268,11 +268,11 @@ TypeErr deSwitch(Node *node)
 		Node *left = (Node *)node->getLeftChild();
 		Node *right = (Node *)node->getRightChild();
 		if (left->valType != right->valType) {
-			//TODO: Add Error Here
 			cerr << "ERROR WITH TYPES IN AST_LARROW" << endl;
 			cerr << "LEFT  TYPE IS " << left->valType << endl;
 			cerr << "RIGHT TYPE IS " << right->valType << endl;
 			cerr << endl;
+			numErrors++;
 			node->valType = "Object";
 		}
 		else {
@@ -294,6 +294,7 @@ TypeErr deSwitch(Node *node)
 			cerr << "TYPE ERROR IN AST_TILDE" << endl;
 			cerr << "Should be type Int but is type " << child->valType << endl;
 			cerr << endl;
+			numErrors++;
 			node->valType = "Object";
 		}
 		else {
@@ -321,6 +322,7 @@ TypeErr deSwitch(Node *node)
 
 		if (method == nullptr) {
 			cerr << "Cannot find method '" << id->value << "' in current scope" << endl;
+			numErrors++;
 			node->valType = "Object";
 			break;
 		}
@@ -336,11 +338,13 @@ TypeErr deSwitch(Node *node)
 		/* error check */
 		if (param_types.size() != method->argTypes.size()) {
 			cerr << "Mismatch in number of expected parameters vs given" << endl;
+			numErrors++;
 		}
 		else {
 			for (int i = 0; i < param_types.size(); i++) {
 				if (param_types[i] != method->argTypes[i]) {
 					cerr << "Type of parameter given: " << param_types[i] << ", expected: " << method->argTypes[i] << endl;
+					//TODO: numErrors++ here?
 				}
 			}
 		}
@@ -361,6 +365,7 @@ TypeErr deSwitch(Node *node)
 		Node *type = (Node *)node->getChildren()[1];
 		if (expr->type != NodeType::AST_NULL && expr->type != type->type) {
 			cerr << "type mismatch in assignment of let statement" << endl;
+			numErrors++;
 		}
 		break;
 	}
@@ -383,6 +388,7 @@ TypeErr deSwitch(Node *node)
 
 		if (badType) {
 			cerr << "Undeclared type in Case Statement" << endl;
+			numErrors++;
 			node->valType = "Object";
 		}
 		else {
@@ -395,6 +401,7 @@ TypeErr deSwitch(Node *node)
 		Node *expr = (Node *)node->getChildren()[3];
 		if (type->valType != expr->valType) {
 			cerr << "Type mismtach between declared type of method and derived type" << endl;
+			numErrors++;
 		}
 		break;
 	}
@@ -403,6 +410,7 @@ TypeErr deSwitch(Node *node)
 		Node *type = (Node *)node->getChildren()[1];
 		if (expr->type != NodeType::AST_NULL && expr->type != type->type) {
 			cerr << "type mismatch in feature assignment" << endl;
+			numErrors++;
 		}
 		break;
 	}

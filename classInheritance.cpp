@@ -23,7 +23,7 @@ ClassErr setupClasses(void)
 		string inherits = ((Node *)classDescNodes[1])->value;
 
 		if (globalTypeList.count(className) > 0) {
-			//TODO: report multi def errors
+			cerr << "Class \"" << className << "\" redefined" << "\n";
 			return ClassErr::MULTI_DEF;
 		}
 		else {
@@ -34,12 +34,20 @@ ClassErr setupClasses(void)
 
 	string startingClass = "Object";
 	scopeClasses(classMap, startingClass);
-
 	//all classes should be checked now
+
+	//check for bad/cyclic class inheritance
 	if (classMap.size() > 0) {
-		//TODO: cyclic inheritance or undefined inheritance errors
+		cerr << "Classes: ";
+		for (auto it = classMap.begin(); it != classMap.end(); it++) {
+			for (string cl : it->second) {
+				cerr << cl << ", ";
+			}
+		}
+		cerr << "have improper inheritance" << "\n";
 		return ClassErr::CYCLIC_BAD_INHERITANCE;
 	}
+
 	return ClassErr::OK;
 }
 
