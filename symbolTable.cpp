@@ -1,10 +1,5 @@
-#include "symbolTable.h"
-#include <stdexcept>
-#include <queue>
-#include <iostream>
-#include <stdio.h>
-#include <string>
-using namespace std;
+#include "symboltable.h"
+
 
 SymbolTable::SymbolTable(string scopeName) {
 	symRoot = new SymNode;
@@ -63,12 +58,32 @@ void SymbolTable::enterScope(std::string scope)
 /*
 * Make a new scope in the current scope and enter it
 */
+
 void SymbolTable::addAndEnterScope(std::string scope)
 {
 	addScope(scope);
 	enterScope(scope);
 }
 
+string SymbolTable::getCurrentClass()
+{
+	SymNode *currentSymNode = this->cur;
+
+	while ((globalTypeList.count(currentSymNode->name)) == 0) {
+		currentSymNode = currentSymNode->parent;
+	}
+
+	return currentSymNode->name;
+}
+
+bool SymbolTable::isSubClass(string sub, string super)
+{
+	while (sub != "Object" && sub != super) {
+		sub = globalTypeList[sub];
+	}
+
+	return sub == super;
+}
 /*
 * Get the name of the current scope
 */

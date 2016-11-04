@@ -3,6 +3,11 @@
 
 #include <unordered_map>
 #include <vector>
+#include <stdexcept>
+#include <queue>
+#include <iostream>
+#include <string>
+using namespace std;
 
 extern std::unordered_map<std::string, std::string> globalTypeList;
 
@@ -52,6 +57,15 @@ public:
         *Make a new scope (let, method, class) in the current scope
         */ 
 	void addScope(std::string newScope);
+
+	/*
+		*Gets the name of the current class
+		*/
+	std::string getCurrentClass();
+	/*
+		*Checks to see if the sub string is a sub class of the super string
+		*/
+	bool isSubClass(std::string sub, std::string super);
         
     /*
         * Enter a scope, making sure it exists first
