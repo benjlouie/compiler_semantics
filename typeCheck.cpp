@@ -97,9 +97,16 @@ TypeErr typeCheck_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned &
 TypeErr deSwitch(Node *node)
 {
 	switch (node->type) {
-	case NodeType::AST_IDENTIFIER:
-		node->valType = globalSymTable->getVariable(node->value)->type;
+	case NodeType::AST_IDENTIFIER: {
+		SymTableVariable *var = globalSymTable->getVariable(node->value);
+		if (var == nullptr) {
+			cerr << "Variable " << node->value << " Not found in current scope" << endl;
+			node->valType = "Object";
+			break;
+		}
+		node->valType = var->type;
 		break;
+	}
 	case NodeType::AST_CASE: {
 		auto children = node->getChildren();
 		Node * asttypechild = (Node *)children[2];
@@ -126,7 +133,8 @@ TypeErr deSwitch(Node *node)
 		types.push_back(elsechild->valType);
 		
 		//Checking to make sure we have the types before calling Lub
-		if (globalTypeList.count(types[0]) == 0 || globalTypeList.count(types[1]) == 0) {
+
+		if ((globalTypeList.count(types[0]) == 0 && types[0] != "SELF_TYPE" ) || (globalTypeList.count(types[1]) == 0 && types[1] != "SELF_TYPE")) {
 			cerr << "Undeclared type in IF-Then-Else Block" << endl;
 			node->valType = "Object";
 		}
@@ -224,7 +232,6 @@ TypeErr deSwitch(Node *node)
 				cerr << "RIGHT TYPE IS " << right->valType << endl;
 				cerr << endl;
 				numErrors++;
-				node->valType = "Object";
 			}
 		}
 		else if (right->valType == "Bool" || right->valType == "Int" || right->valType == "String") {
@@ -234,12 +241,9 @@ TypeErr deSwitch(Node *node)
 				cerr << "RIGHT TYPE IS " << right->valType << endl;
 				cerr << endl;
 				numErrors++;
-				node->valType = "Object";
 			}
 		}
-		else {
-			node->valType = "Bool";
-		}
+		node->valType = "Bool";
 		break;
 	}
 	case NodeType::AST_LE:
@@ -253,7 +257,6 @@ TypeErr deSwitch(Node *node)
 			cerr << "RIGHT TYPE IS " << right->valType << endl;
 			cerr << endl;
 			numErrors++;
-			node->valType = "Object";
 		}
 		else if (right->valType != "Int") {
 			cerr << "ERROR WITH TYPES IN AST_COMPARE" << endl;
@@ -261,11 +264,8 @@ TypeErr deSwitch(Node *node)
 			cerr << "RIGHT TYPE IS " << right->valType << endl;
 			cerr << endl;
 			numErrors++;
-			node->valType = "Object";
 		}
-		else {
-			node->valType = "Bool";
-		}
+		node->valType = "Bool";
 		break;
 	}
 	case NodeType::AST_LARROW: {
@@ -321,16 +321,25 @@ TypeErr deSwitch(Node *node)
 		Node *id = (Node *)node->getChildren()[2];
 		Node *params = (Node *)node->getChildren()[3];
 		SymTableMethod *method;
+		int type;
 
 		/* Case 1: calling a method within the class*/
-		if (caller->type == NodeType::AST_NULL) {
+		if (caller->type == NodeType::AST_NULL || (caller->valType == "SELF_TYPE" && atType->type == NodeType::AST_NULL)) {
 			method = globalSymTable->getMethod(id->value);
+			type = 0;
 		}
 		else if (atType->type == NodeType::AST_NULL) { //specify an object
 			method = globalSymTable->getMethodByClass(id->value, caller->valType);
+			type = 1;
 		}
 		else { //Specify which class to use
+			if (atType->valType == "SELF_TYPE") {
+				cerr << "Cannot have @SELF_TYPE on line: " << node->lineNumber << endl;
+				node->valType = "Object";
+				break;
+			}
 			method = globalSymTable->getMethodByClass(id->value, atType->valType);
+			type = 2;
 		}
 
 		if (method == nullptr) {
@@ -355,21 +364,35 @@ TypeErr deSwitch(Node *node)
 
 		/* error check */
 		if (param_types.size() != method->argTypes.size()) {
-			cerr << "Mismatch in number of expected parameters vs given" << endl;
+			cerr << "Mismatch in number of expected parameters vs given in function " << id->value << endl;
 			numErrors++;
 		}
 		else {
 			for (int i = 0; i < param_types.size(); i++) {
 				//if (param_types[i] != method->argTypes[i]) {
 				if (!globalSymTable->isSubClass(param_types[i], method->argTypes[i])) {//TODO write this method
-					cerr << "Type of parameter given: " << param_types[i] << ", expected: " << method->argTypes[i] << endl;
+					cerr << "Type of parameter given: " << param_types[i] << ", expected: " << method->argTypes[i] << " in method " << id->value << endl;
 					//TODO: numErrors++ here?
 				}
 			}
 		}
 		
 		if (method->returnType == "SELF_TYPE") {
-			node->valType = globalSymTable->getCurrentClass();//TODO this might be weird
+			switch (type) {
+			case 0:
+				node->valType = "SELF_TYPE";
+				break;
+			case 1:
+				node->valType = caller->valType;
+				break;
+			case 2:
+				node->valType = atType->valType;
+				break;
+			default:
+				cerr << "how? how did you get here?" << endl;
+				node->valType = "Object";
+			}
+			//node->valType = globalSymTable->getCurrentClass();//TODO this might be weird
 		}
 		else {
 			node->valType = method->returnType;
@@ -387,7 +410,7 @@ TypeErr deSwitch(Node *node)
 	case NodeType::AST_IDTYPEEXPR: {
 		Node *expr = (Node *)node->getChildren()[2];
 		Node *type = (Node *)node->getChildren()[1];
-		if (expr->type != NodeType::AST_NULL && expr->type != type->type) {
+		if (expr->type != NodeType::AST_NULL && expr->valType != type->valType) {
 			cerr << "type mismatch in assignment of let statement" << endl;
 			numErrors++;
 		}
@@ -404,7 +427,7 @@ TypeErr deSwitch(Node *node)
 		bool badType = false;
 		//for-loop to check each type
 		for (string type : types) {
-			if (globalTypeList.count(type) == 0) {
+			if (globalTypeList.count(type) == 0 && type != "SELF_TYPE") {
 				badType = true;
 				break;
 			}
@@ -450,6 +473,20 @@ TypeErr deSwitch(Node *node)
  * calling this
  */
 string lub(vector<string> classes) {
+	/* check if classes contain self type*/
+	int counter = 0;
+	for (string s : classes) {
+		if (s == "SELF_TYPE") {
+			counter++;
+		}
+	}
+	if (counter != 0 && counter == classes.size()) {
+		return "SELF_TYPE";
+	}
+	else if (counter != 0) {
+		return "Object";
+	}
+
 	/* gotta get the distances to Object first */
 	vector<int> distances(classes.size()); //all init to 0
 	string tmp;

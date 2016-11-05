@@ -85,7 +85,11 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned
 		{
 			string attrName = ((Node *)child->getChildren()[0])->value;
 			string attrType = ((Node *)child->getChildren()[1])->value;
-			if (!globalSymTable->addVariable(attrName, attrType)) {
+			if (attrName == "self") {
+				cerr << child->lineNumber << ": variable 'self' cannot be redefinded" << "\n";
+				numErrors++;
+			}
+			else if (!globalSymTable->addVariable(attrName, attrType)) {
 				cout << "error adding variable '" << attrName << "' located on line:" << child->lineNumber << " variable already exists" << endl;
 				numErrors++;
 			}
@@ -95,6 +99,11 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned
 		{
 			string varName = ((Node *)child->getChildren()[0])->value;
 			string varType = ((Node *)child->getChildren()[1])->value;
+			if (varName == "self") {
+				cerr << child->lineNumber << ": variable 'self' cannot be redefinded" << "\n";
+				numErrors++;
+			}
+			else
 			if (!globalSymTable->addVariable(varName, varType)) {
 				cout << "error adding variable '" << varName << "' located on line:" << child->lineNumber << " variable already exists" << endl;
 				numErrors++;
@@ -116,7 +125,13 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned
 			globalSymTable->addAndEnterScope("case" + to_string(currentCaseCount));
 			string caseIDName = ((Node *)child->getChildren()[0])->value;
 			string caseIDType = ((Node *)child->getChildren()[1])->value;
-			globalSymTable->addVariable(caseIDName, caseIDType);
+			if (caseIDName == "self") {
+				cerr << child->lineNumber << ": variable 'self' cannot be redefinded" << "\n";
+				numErrors++;
+			}
+			else {
+				globalSymTable->addVariable(caseIDName, caseIDType);
+			}
 			enteredNewScope = true;
 			currentCaseCount++;
 			break;

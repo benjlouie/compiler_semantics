@@ -168,6 +168,7 @@ SymTableMethod *SymbolTable::getMethod(string name)
 }
 
 SymTableMethod *SymbolTable::getMethodByClass(string method, string cls) {
+	
 	/* find the path to cls*/
 	SymNode *searcher = symRoot;
 	string tmp = cls;

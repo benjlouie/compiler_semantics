@@ -57,13 +57,15 @@ void scopeClasses(unordered_map<string, vector<string>> &classMap, string &start
 	}
 
 	auto inheritsList = classMap[start];
+	//Go through each class, add to sym table the correct variables/classes
 	for (string className : inheritsList) {
-		if (className == "IO" || className == "String") { //TODO: figure out wayt to remove special case for built ins
+		if (className == "IO" || className == "String") { 
 			globalSymTable->enterScope(className);
 		}
 		else {
 			globalSymTable->addAndEnterScope(className);
 		}
+		globalSymTable->addVariable("self", "SELF_TYPE");
 		scopeClasses(classMap, className);
 		globalSymTable->leaveScope();
 	}
