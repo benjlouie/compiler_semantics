@@ -32,7 +32,7 @@ void SymbolTable::addScope(std::string newScope)
 {
 	for (auto s : cur->children) {
 		if (s->name == newScope) {
-			throw exception("Scope name already exists");
+			throw "Scope name already exists";
 		}
 	}
 	SymNode *tmp = new SymNode;
@@ -52,7 +52,7 @@ void SymbolTable::enterScope(std::string scope)
 			return;
 		}
 	}
-	throw exception("Scope not found");
+	throw "Scope not found";
 }
 
 /*
@@ -98,7 +98,7 @@ string SymbolTable::getScope()
 void SymbolTable::leaveScope()
 {
 	if (cur == symRoot) {
-		throw exception("Cannot leave global scope");
+		throw "Cannot leave global scope";
 	}
 	cur = cur->parent;
 }

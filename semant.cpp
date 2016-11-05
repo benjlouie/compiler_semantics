@@ -54,9 +54,7 @@ void semant()
 		}
 	}
 
-	switch (typeCheck()) {
-	case TypeErr::TYPE_OK:
-		break;
-	}
-	//root->print();
+	typeCheck();
+	
+	
 }

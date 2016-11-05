@@ -46,6 +46,7 @@ TypeErr typeCheck_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned &
 			enteredNewScope = true;
 			break;
 		}
+
 		case NodeType::AST_LET:
 			if (ASTNode->type != NodeType::AST_LET) {
 				globalSymTable->enterScope("let" + to_string(currentLetCount));
@@ -68,6 +69,8 @@ TypeErr typeCheck_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned &
 			break;
 
 		}
+		default:
+			break;
 		}
 
 		//recurse to children
@@ -100,7 +103,7 @@ TypeErr deSwitch(Node *node)
 	case NodeType::AST_IDENTIFIER: {
 		SymTableVariable *var = globalSymTable->getVariable(node->value);
 		if (var == nullptr) {
-			cerr << "Variable " << node->value << " Not found in current scope" << endl;
+			cerr << node->lineNumber << ": Variable " << node->value << " Not found in current scope" << endl;
 			node->valType = "Object";
 			break;
 		}
@@ -126,7 +129,7 @@ TypeErr deSwitch(Node *node)
 
 		//if stuff
 		if (iftest->valType != "Bool") {
-			cerr << "ERROR IN IF TEST" << endl;
+			cerr << node->lineNumber << ": IF CONDITION DOES NOT EVALUATE TO BOOLEAN" << endl;
 		}
 		vector<string> types;
 		types.push_back(thenchild->valType);
@@ -135,7 +138,7 @@ TypeErr deSwitch(Node *node)
 		//Checking to make sure we have the types before calling Lub
 
 		if ((globalTypeList.count(types[0]) == 0 && types[0] != "SELF_TYPE" ) || (globalTypeList.count(types[1]) == 0 && types[1] != "SELF_TYPE")) {
-			cerr << "Undeclared type in IF-Then-Else Block" << endl;
+			cerr << node->lineNumber << ": Undeclared type in IF-Then-Else Block" << endl;
 			node->valType = "Object";
 		}
 		else {
@@ -150,7 +153,7 @@ TypeErr deSwitch(Node *node)
 	case NodeType::AST_NEW: {
 		Node * child = (Node *)node->getChild();
 		if (child->valType == "SELF_TYPE") {
-			node->valType = globalSymTable->getCurrentClass();//TODO create this	
+			node->valType = globalSymTable->getCurrentClass();	
 		}
 		else {
 			node->valType = child->valType;
@@ -161,7 +164,7 @@ TypeErr deSwitch(Node *node)
 		//check for BOOL
 		Node* child = (Node *)node->getChild();
 		if (child->valType != "Bool") {
-			cerr << "TYPE ERROR IN AST_NOT" << endl;
+			cerr << node->lineNumber << ": RIGHT HAND SIDE OF AST_NOT IS NOT BOOLEAN TYPE" << endl;
 			node->valType = "Bool";
 		}
 		else {
@@ -174,11 +177,10 @@ TypeErr deSwitch(Node *node)
 
 		auto children = node->getChildren();
 		Node * expressiontest = (Node *)children[0];
-		Node * expression = (Node *)children[1];
 
 		//if stuff
 		if (expressiontest->valType != "Bool") {
-			cerr << "ERROR IN EXPRESION TEST, SHOULD BE BOOL BUT ISNT" << endl;
+			cerr << node->lineNumber << ": ERROR IN EXPRESION TEST, SHOULD BE BOOLEAN BUT IS TYPE " << expressiontest->valType << endl;
 		}
 		node->valType = "Object";
 		break;
@@ -201,18 +203,16 @@ TypeErr deSwitch(Node *node)
 		Node *left = (Node *)node->getLeftChild();
 		Node *right = (Node *)node->getRightChild();
 		if (left->valType != "Int") {
-			cerr << "ERROR IN " << enum2string(node->type) << " WITH TYPES"<< endl;
-			cerr << "LEFT  TYPE IS " << left->valType << endl;
+			cerr << node->lineNumber << ": TYPE MISMATCH IN " << enum2string(node->type) << " ";
+			cerr << "LEFT  TYPE IS " << left->valType << " ";
 			cerr << "RIGHT TYPE IS " << right ->valType << endl;
-			cerr << endl;
 			numErrors++;
 			node->valType = "Object";
 		}
 		else if (right->valType != "Int"){
-			cerr << "ERROR IN " << enum2string(node->type) << " WITH TYPES" << endl;
-			cerr << "LEFT  TYPE IS " << left->valType << endl;
+			cerr << node->lineNumber << ": TYPE MISMATCH IN " << enum2string(node->type) << " ";
+			cerr << "LEFT  TYPE IS " << left->valType << " ";
 			cerr << "RIGHT TYPE IS " << right->valType << endl;
-			cerr << endl;
 			numErrors++;
 			node->valType = "Object";
 		}
@@ -227,19 +227,17 @@ TypeErr deSwitch(Node *node)
 		Node *right = (Node *)node->getRightChild();
 		if (left->valType == "Bool" || left->valType == "Int" || left->valType == "String") {
 			if (right->valType != left->valType) {
-				cerr << "ERROR WITH TYPES IN AST_EQUAL" << endl;
-				cerr << "LEFT  TYPE IS " << left->valType << endl;
+				cerr << node->lineNumber << ": TYPE MISMATCH IN EQUALS ";
+				cerr << "LEFT  TYPE IS " << left->valType << " ";
 				cerr << "RIGHT TYPE IS " << right->valType << endl;
-				cerr << endl;
 				numErrors++;
 			}
 		}
 		else if (right->valType == "Bool" || right->valType == "Int" || right->valType == "String") {
 			if (right->valType != left->valType) {
-				cerr << "ERROR WITH TYPES IN AST_EQUAL" << endl;
-				cerr << "LEFT  TYPE IS " << left->valType << endl;
+				cerr << node->lineNumber << ": TYPE MISMATCH IN EQUALS ";
+				cerr << "LEFT  TYPE IS " << left->valType << " ";
 				cerr << "RIGHT TYPE IS " << right->valType << endl;
-				cerr << endl;
 				numErrors++;
 			}
 		}
@@ -252,17 +250,11 @@ TypeErr deSwitch(Node *node)
 		Node *left = (Node *)node->getLeftChild();
 		Node *right = (Node *)node->getRightChild();
 		if (left->valType != "Int") {
-			cerr << "ERROR WITH TYPES IN AST_COMPARE" << endl;
-			cerr << "LEFT  TYPE IS " << left->valType << endl;
-			cerr << "RIGHT TYPE IS " << right->valType << endl;
-			cerr << endl;
+			cerr << node->lineNumber << ": LEFT SIDE OF COMPARE IS NOT OF TYPE INT BUT TYPE " << left->valType << endl;
 			numErrors++;
 		}
 		else if (right->valType != "Int") {
-			cerr << "ERROR WITH TYPES IN AST_COMPARE" << endl;
-			cerr << "LEFT  TYPE IS " << left->valType << endl;
-			cerr << "RIGHT TYPE IS " << right->valType << endl;
-			cerr << endl;
+			cerr << node->lineNumber << ": RIGHT SIDE OF COMPARE IS NOT OF TYPE INT BUT TYPE " << right->valType << endl;
 			numErrors++;
 		}
 		node->valType = "Bool";
@@ -274,12 +266,9 @@ TypeErr deSwitch(Node *node)
 		Node *right = (Node *)node->getRightChild();
 		//if (left->valType != right->valType) {
 		if(!globalSymTable->isSubClass(left->valType,right->valType)) {
-			//TODO write this method 
-			//TODO: Add Error Here
-			cerr << "ERROR WITH TYPES IN AST_LARROW" << endl;
-			cerr << "LEFT  TYPE IS " << left->valType << endl;
+			cerr << node->lineNumber << ": TYPE MISMATCH IN AST_LARROW ";
+			cerr << "LEFT  TYPE IS " << left->valType << " ";
 			cerr << "RIGHT TYPE IS " << right->valType << endl;
-			cerr << endl;
 			numErrors++;
 			node->valType = "Object";
 		}
@@ -292,21 +281,16 @@ TypeErr deSwitch(Node *node)
 		auto children = node->getChildren();
 		Node * letexpression  = (Node *)children[1];
 
-		if (letexpression->valType == "SELF_TYPE") {
-			node->valType = globalSymTable->getCurrentClass(); //TODO forest write this
-		}
-		else {
-			node->valType = letexpression->valType;
-		}
+		
+		node->valType = letexpression->valType;
+		
 		break;
 	}
 	case NodeType::AST_TILDE: {
 		//check for INT
 		Node* child = (Node *)node->getChildren()[0];
 		if (child->valType != "Int") {
-			cerr << "TYPE ERROR IN AST_TILDE" << endl;
-			cerr << "Should be type Int but is type " << child->valType << endl;
-			cerr << endl;
+			cerr << node->lineNumber <<  ": RIGHT SIDE OF TILDE EXPECTS TYPE INT BUT IS TYPE "<< child->valType << endl;
 			numErrors++;
 			node->valType = "Object";
 		}
@@ -334,7 +318,7 @@ TypeErr deSwitch(Node *node)
 		}
 		else { //Specify which class to use
 			if (atType->valType == "SELF_TYPE") {
-				cerr << "Cannot have @SELF_TYPE on line: " << node->lineNumber << endl;
+				cerr << node->lineNumber << ": Cannot have @SELF_TYPE" << endl;
 				node->valType = "Object";
 				break;
 			}
@@ -343,7 +327,7 @@ TypeErr deSwitch(Node *node)
 		}
 
 		if (method == nullptr) {
-			cerr << "Cannot find method '" << id->value << "' in current scope" << endl;
+			cerr << node->lineNumber << ": Cannot find method '" << id->value << "' in current scope" << endl;
 			numErrors++;
 			node->valType = "Object";
 			break;
@@ -355,7 +339,7 @@ TypeErr deSwitch(Node *node)
 		for (int i = params->getChildren().size() - 1; i >= 0; i--) { //they'll be backwards if we do i 0 to n
 			actual = (Node *)params->getChildren()[i];
 			if (actual->valType == "SELF_TYPE") {
-				param_types.push_back(globalSymTable->getCurrentClass());//TODO forest write this
+				param_types.push_back(globalSymTable->getCurrentClass());
 			}
 			else {
 				param_types.push_back(actual->valType);
@@ -364,7 +348,7 @@ TypeErr deSwitch(Node *node)
 
 		/* error check */
 		if (param_types.size() != method->argTypes.size()) {
-			cerr << "Mismatch in number of expected parameters vs given in function " << id->value << endl;
+			cerr << node->lineNumber << ": Mismatch in number of expected parameters in function " << id->value << endl;
 			numErrors++;
 		}
 		else {
@@ -372,7 +356,7 @@ TypeErr deSwitch(Node *node)
 				//if (param_types[i] != method->argTypes[i]) {
 				if (!globalSymTable->isSubClass(param_types[i], method->argTypes[i])) {//TODO write this method
 					cerr << "Type of parameter given: " << param_types[i] << ", expected: " << method->argTypes[i] << " in method " << id->value << endl;
-					//TODO: numErrors++ here?
+					numErrors++;
 				}
 			}
 		}
@@ -389,10 +373,9 @@ TypeErr deSwitch(Node *node)
 				node->valType = atType->valType;
 				break;
 			default:
-				cerr << "how? how did you get here?" << endl;
+				cerr << node->lineNumber <<  ": how? how did you get here?" << endl;
 				node->valType = "Object";
 			}
-			//node->valType = globalSymTable->getCurrentClass();//TODO this might be weird
 		}
 		else {
 			node->valType = method->returnType;
@@ -411,7 +394,7 @@ TypeErr deSwitch(Node *node)
 		Node *expr = (Node *)node->getChildren()[2];
 		Node *type = (Node *)node->getChildren()[1];
 		if (expr->type != NodeType::AST_NULL && expr->valType != type->valType) {
-			cerr << "type mismatch in assignment of let statement" << endl;
+			cerr << node->lineNumber << ": Type mismatch. DECLARED TYPE OF " << type->valType << " BUT DERIVED TYPE OF " << expr->valType << endl;
 			numErrors++;
 		}
 		break;
@@ -434,7 +417,7 @@ TypeErr deSwitch(Node *node)
 		}
 
 		if (badType) {
-			cerr << "Undeclared type in Case Statement" << endl;
+			cerr << node->lineNumber << ": Undeclared type in Case Statement" << endl;
 			numErrors++;
 			node->valType = "Object";
 		}
@@ -447,7 +430,7 @@ TypeErr deSwitch(Node *node)
 		Node *type = (Node *)node->getChildren()[2];
 		Node *expr = (Node *)node->getChildren()[3];
 		if (type->valType != expr->valType) {
-			cerr << "Type mismtach between declared type of method and derived type" << endl;
+			cerr << node->lineNumber <<  ": Type mismatch. DECLARED TYPE OF " << type->valType << " BUT DERIVED TYPE OF " << expr->valType << endl;
 			numErrors++;
 		}
 		break;
@@ -455,8 +438,8 @@ TypeErr deSwitch(Node *node)
 	case NodeType::AST_FEATURE_ATTRIBUTE: {
 		Node *expr = (Node *)node->getChildren()[2];
 		Node *type = (Node *)node->getChildren()[1];
-		if (expr->type != NodeType::AST_NULL && expr->type != type->type) {
-			cerr << "type mismatch in feature assignment" << endl;
+		if (expr->type != NodeType::AST_NULL && expr->valType != type->valType) {
+			cerr << node->lineNumber << ": Type mismatch. LEFT SIDE IS TYPE " << type->valType << " BUT RIGHT SIDE IS TYPE " << expr->valType << endl;
 			numErrors++;
 		}
 		break;
