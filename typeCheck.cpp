@@ -103,10 +103,12 @@ TypeErr deSwitch(Node *node)
 	for (auto tchild : children) {
 		Node *child = (Node *)tchild;
 		if (globalTypeList.count(child->valType) == 0 && child->valType != "SELF_TYPE") {
-			if (child->valType != "") {
+			if (child->valType != "" && child->valType != "SELF_TYPE") {
 				cerr << child->lineNumber << ": Undefined type '" << child->valType << "'" << endl;
 			}
-			child->valType = "Object";
+			if (child->valType != "SELF_TYPE") {
+				child->valType = "Object";
+			}
 		}
 	}
 
@@ -125,7 +127,7 @@ TypeErr deSwitch(Node *node)
 		auto children = node->getChildren();
 		Node * type = (Node *)children[1];
 		Node * asttypechild = (Node *)children[2];
-		if (globalTypeList.count(type->valType) == 0) {
+		if (globalTypeList.count(type->valType) == 0 && type->valType != "SELF_TYPE") {
 			cerr << node->lineNumber << ": type '" << type->valType << "' not defined" << endl;
 			numErrors++;
 			node->valType = "Object";
@@ -169,7 +171,7 @@ TypeErr deSwitch(Node *node)
 		break;
 	case NodeType::AST_NEW: {
 		Node * child = (Node *)node->getChild();
-		if (globalTypeList.count(child->valType) == 0) {
+		if (globalTypeList.count(child->valType) == 0 && child->valType != "SELF_TYPE") {
 			cerr << node->lineNumber << ": type '" << child->valType << "' not defined" << endl;
 			numErrors++;
 			node->valType = "Object";
@@ -287,7 +289,7 @@ TypeErr deSwitch(Node *node)
 		node->getChildren();
 		Node *left = (Node *)node->getLeftChild();
 		Node *right = (Node *)node->getRightChild();
-		if(!globalSymTable->isSubClass(left->valType,right->valType)) {
+		if(!globalSymTable->isSubClass(right->valType,left->valType)) {
 			cerr << node->lineNumber << ": TYPE MISMATCH IN AST_LARROW ";
 			cerr << "LEFT  TYPE IS " << left->valType << " ";
 			cerr << "RIGHT TYPE IS " << right->valType << endl;
@@ -374,7 +376,7 @@ TypeErr deSwitch(Node *node)
 			for (int i = 0; i < param_types.size(); i++) {
 				//if (param_types[i] != method->argTypes[i]) {
 				if (!globalSymTable->isSubClass(param_types[i], method->argTypes[i])) {//TODO write this method
-					cerr << "Type of parameter given: " << param_types[i] << ", expected: " << method->argTypes[i] << " in method " << id->value << endl;
+					cerr << node->lineNumber << ": Type of parameter given: " << param_types[i] << ", expected: " << method->argTypes[i] << " in method " << id->value << endl;
 					numErrors++;
 				}
 			}
@@ -412,7 +414,7 @@ TypeErr deSwitch(Node *node)
 	case NodeType::AST_IDTYPEEXPR: {
 		Node *expr = (Node *)node->getChildren()[2];
 		Node *type = (Node *)node->getChildren()[1];
-		if (globalTypeList.count(type->valType) == 0) {
+		if (globalTypeList.count(type->valType) == 0 && type->valType != "SELF_TYPE") {
 			cerr << node->lineNumber << ": type '" << type->valType << "' not defined" << endl;
 			numErrors++;
 			break;
@@ -453,7 +455,7 @@ TypeErr deSwitch(Node *node)
 	case NodeType::AST_FEATURE_METHOD: {
 		Node *type = (Node *)node->getChildren()[2];
 		Node *expr = (Node *)node->getChildren()[3];
-		if (globalTypeList.count(type->valType) == 0) {
+		if (globalTypeList.count(type->valType) == 0 && type->valType != "SELF_TYPE") {
 			cerr << node->lineNumber << ": type '" << type->valType << "' not defined" << endl;
 			numErrors++;
 			break;
@@ -467,7 +469,7 @@ TypeErr deSwitch(Node *node)
 	case NodeType::AST_FEATURE_ATTRIBUTE: {
 		Node *expr = (Node *)node->getChildren()[2];
 		Node *type = (Node *)node->getChildren()[1];
-		if (globalTypeList.count(type->valType) == 0) {
+		if (globalTypeList.count(type->valType) == 0 && type->valType != "SELF_TYPE") {
 			cerr << node->lineNumber << ": type '" << type->valType << "' not defined" << endl;
 			numErrors++;
 			break;

@@ -55,6 +55,9 @@ void scopeClasses(unordered_map<string, vector<string>> &classMap, string &start
 	if (classMap.count(start) == 0) {
 		return;
 	}
+	if (start == "Int" || start == "Bool") {
+		return;
+	}
 
 	auto inheritsList = classMap[start];
 	//Go through each class, add to sym table the correct variables/classes
@@ -145,6 +148,8 @@ void setupBuiltinClasses(void)
 	//Int
 	//Bool
 	//just add to type list
+	globalSymTable->addScope("Int");
+	globalSymTable->addScope("Bool");
 	globalTypeList["Int"] = "Object";
 	globalTypeList["Bool"] = "Object";
 

@@ -200,8 +200,8 @@ SymTableMethod *SymbolTable::getMethodByClass(string method, string cls) {
 		}
 	}
 	if (searcher->name != cls) {
-		cerr << "Error finding class in getMethod(string, string)" << endl;
-		exit(-1);
+		//cerr << "Error finding class in getMethod(string, string)" << endl;
+		return nullptr;
 	}
 
 	/* search up hierarchy for method */
