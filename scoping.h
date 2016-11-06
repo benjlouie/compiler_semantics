@@ -1,8 +1,17 @@
+/*********************************************
+* Authors: Ben and Matt
+* Sub-authors: Benji
+*
+**********************************************/
+
 #ifndef __SCOPING_H_
 #define __SCOPING_H_
 
 #include "../src/ast.h"
 #include "symbolTable.h"
+#include "typeCheck.h"
+#include <iostream>
+
 
 extern Node *root;
 extern SymbolTable *globalSymTable;

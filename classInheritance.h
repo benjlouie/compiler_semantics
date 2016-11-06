@@ -5,6 +5,7 @@
 #include "symbolTable.h"
 #include <unordered_map>
 #include <queue>
+#include <iostream>
 
 extern Node *root;
 extern SymbolTable *globalSymTable;

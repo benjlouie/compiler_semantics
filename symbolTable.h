@@ -3,7 +3,13 @@
 
 #include <unordered_map>
 #include <vector>
+#include <stdexcept>
+#include <queue>
+#include <iostream>
+#include <string>
+using namespace std;
 
+extern std::unordered_map<std::string, std::string> globalTypeList;
 
 class SymTableVariable
 {
@@ -35,74 +41,59 @@ public:
         //Where we came from 
         struct SymNode *parent;
         //
+		//TODO(BEN): change this to unordered_map<string, struct SymNode *> so children can quickly be accessed/queried
 		std::vector<struct SymNode *> children;
 	} SymNode;
     SymNode *symRoot;
     SymNode *cur;
 
-	SymbolTable(std::string scopeName)
-	{
-		return;
-	}
+	SymbolTable(std::string scopeName);
+
+	~SymbolTable();
         
     /*
         *Make a new scope (let, method, class) in the current scope
         */ 
-	void addScope(std::string newScope)
-	{
-		return;
-	}
+	void addScope(std::string newScope);
+
+	/*
+		*Gets the name of the current class
+		*/
+	std::string getCurrentClass();
+	/*
+		*Checks to see if the sub string is a sub class of the super string
+		*/
+	bool isSubClass(std::string sub, std::string super);
         
     /*
         * Enter a scope, making sure it exists first
         */
-	void enterScope(std::string scope)
-	{
-		return;
-	}
+	void enterScope(std::string scope);
         
     /*
         * Make a new scope in the current scope and enter it
         */
-	void addAndEnterScope(std::string scope)
-	{
-		return;
-	}
+	void addAndEnterScope(std::string scope);
 
     /*
         * Get the name of the current scope
         */
-	std::string getScope()
-	{
-		return "";
-	}
+	std::string getScope();
 
     /*
         *
         */
-	void leaveScope()
-	{
-		return;
-	}
+	void leaveScope();
 
-	void addVariable(std::string name, std::string type)
-	{
-		return;
-	}
+	bool addVariable(std::string name, std::string type);
 
-	void addMethod(std::string name, std::vector<std::string> argTypes, std::string returnType)
-	{
-		return;
-	}
+	bool addMethod(std::string name, std::vector<std::string> argTypes, std::string returnType);
 
-	SymTableVariable *getVariable(std::string name)
-	{
-		return nullptr;
-	}
-	SymTableMethod *getMethod(std::string name)
-	{
-		return nullptr;
-	}
+	SymTableVariable *getVariable(std::string name);
+
+	SymTableMethod *getMethod(std::string name);
+
+	SymTableMethod *getMethodByClass(std::string method, std::string cls);
 
 };
 
