@@ -1,3 +1,9 @@
+/*****************************************************************************************************
+*	Main Authors: Matt karasz, Benjamin Cope, Ben Louie, Robert Blasi, Forest Thomas
+*	Sub Authors:
+*
+*	Description: This file recursively walks the AST from the bottom up checking types as it goes
+******************************************************************************************************/
 #pragma once
 
 #include "../src/ast.h"

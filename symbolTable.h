@@ -1,3 +1,9 @@
+/*********************************************
+* Authors: Forest and Ben
+* Sub-authors: Robert, Matt
+*
+**********************************************/
+
 #ifndef __SYMBOLTABLE_H_
 #define __SYMBOLTABLE_H_
 

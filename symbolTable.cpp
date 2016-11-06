@@ -1,6 +1,16 @@
+/*********************************************
+* Authors: Forest and Ben
+* Sub-authors: Robert, Matt
+*
+**********************************************/
+
 #include "symbolTable.h"
 
 
+/**
+* This is the structure for the symbol table
+* This takes in the scope name and created a new node
+*/
 SymbolTable::SymbolTable(string scopeName) {
 	symRoot = new SymNode;
 	cur = symRoot;
@@ -65,6 +75,10 @@ void SymbolTable::addAndEnterScope(std::string scope)
 	enterScope(scope);
 }
 
+/**
+* Get the current class being evaluated
+* returns the name of the Node
+*/
 string SymbolTable::getCurrentClass()
 {
 	SymNode *currentSymNode = this->cur;
@@ -76,6 +90,9 @@ string SymbolTable::getCurrentClass()
 	return currentSymNode->name;
 }
 
+/**
+* Checks if the current class is a super class
+*/
 bool SymbolTable::isSubClass(string sub, string super)
 {
 	if (super == "Object") {
@@ -105,7 +122,7 @@ string SymbolTable::getScope()
 }
 
 /*
-*
+* Function to leave the current scope worked in
 */
 void SymbolTable::leaveScope()
 {
@@ -115,7 +132,9 @@ void SymbolTable::leaveScope()
 	cur = cur->parent;
 }
 
-
+/**
+*
+*/
 bool SymbolTable::addVariable(string name, string type)
 {
 	/*if (cur->variables.find(name) == cur->variables.end()) {
@@ -135,6 +154,10 @@ bool SymbolTable::addVariable(string name, string type)
 	return true;
 }
 
+/**
+* Checks if the method has the correct argtypes and return type
+* returns true if the method was correctly added
+*/
 bool SymbolTable::addMethod(string name, vector<string> argTypes, string returnType)
 {
 	/*if (cur->variables.find(name) == cur->variables.end()) {
@@ -156,6 +179,9 @@ bool SymbolTable::addMethod(string name, vector<string> argTypes, string returnT
 	return true;
 }
 
+/**
+* Gets the variable with input name
+*/
 SymTableVariable *SymbolTable::getVariable(string name)
 {
 	SymNode *scanner = cur;
@@ -167,6 +193,10 @@ SymTableVariable *SymbolTable::getVariable(string name)
 	}
 	return nullptr;
 }
+
+/**
+* Gets the method with the input name
+*/
 SymTableMethod *SymbolTable::getMethod(string name)
 {
 	SymNode *scanner = cur;
@@ -179,6 +209,9 @@ SymTableMethod *SymbolTable::getMethod(string name)
 	return nullptr;
 }
 
+/**
+* Gets the name of methods based on the class name passed
+*/
 SymTableMethod *SymbolTable::getMethodByClass(string method, string cls) {
 	
 	/* find the path to cls*/
