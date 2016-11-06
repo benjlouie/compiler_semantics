@@ -1,3 +1,9 @@
+/*********************************************
+* Authors: Ben and Matt
+* Sub-authors: Benji
+*
+**********************************************/
+
 #ifndef __SCOPING_H_
 #define __SCOPING_H_
 

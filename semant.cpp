@@ -1,6 +1,16 @@
+/*********************************************
+* Authors: Everyone
+* Sub-authors:
+*
+**********************************************/
 
 #include "../compiler_semantics/semant.h"
 
+/**
+* The semant function checks for multiple class definitions and
+* cyclic inheritance. This function also sets up the main and object
+* scopes.
+*/
 void semant()
 {
 	//add Object to as starting class

@@ -1,3 +1,10 @@
+/*********************************************
+* Authors: Ben and Matt
+* Sub-authors: Benji
+*
+**********************************************/
+
+
 #include "../compiler_semantics/scoping.h"
 
 ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned &currentCaseCount);
@@ -14,7 +21,12 @@ ScopeErr buildScope(void)
 	return buildScope_recursive(root, letCount, caseCount);
 }
 
-//TODO: error check this like crazy
+/**
+* buildScope_recursive passes in three values, the node, the let count, and case count for each scope.
+* This function is used to make sure the tree is built correctly and the correct scopes are added.
+* A case-statement is used to correctly check if each scope is correct.
+* Errors will be returned if the scope has issues
+*/
 ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned &currentCaseCount)
 {
 	if (ASTNode == nullptr) {
@@ -50,6 +62,8 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned
 			enteredNewScope = true;
 			break;
 		}
+
+		//Case for Let Expressions
 		case NodeType::AST_LET:
 				
 			if ( ASTNode->type != NodeType::AST_LET) {
@@ -58,6 +72,7 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned
 				currentLetCount++;
 			}
 			break;
+		//case for methods	
 		case NodeType::AST_FEATURE_METHOD:
 		{
 			string methodName = ((Node *)child->getChildren()[0])->value;
@@ -81,6 +96,7 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned
 			enteredNewScope = true;
 			break;
 		}
+		//case for attributes
 		case NodeType::AST_FEATURE_ATTRIBUTE:
 		{
 			string attrName = ((Node *)child->getChildren()[0])->value;
@@ -110,6 +126,7 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned
 			}
 			break;
 		}
+		//case for formals
 		case NodeType::AST_FORMAL:
 		{
 			string formalName = ((Node *)child->getChildren()[0])->value;
@@ -120,6 +137,7 @@ ScopeErr buildScope_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned
 			}
 			break;
 		}
+		//case for case expressions
 		case NodeType::AST_CASE: 
 		{
 			globalSymTable->addAndEnterScope("case" + to_string(currentCaseCount));
