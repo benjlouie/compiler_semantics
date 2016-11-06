@@ -99,6 +99,17 @@ TypeErr typeCheck_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned &
 
 TypeErr deSwitch(Node *node)
 {
+	auto children = node->getChildren();
+	for (auto tchild : children) {
+		Node *child = (Node *)tchild;
+		if (globalTypeList.count(child->valType) == 0 && child->valType != "SELF_TYPE") {
+			if (child->valType != "") {
+				cerr << child->lineNumber << ": Undefined type '" << child->valType << "'" << endl;
+			}
+			child->valType = "Object";
+		}
+	}
+
 	switch (node->type) {
 	case NodeType::AST_IDENTIFIER: {
 		SymTableVariable *var = globalSymTable->getVariable(node->value);
@@ -112,8 +123,14 @@ TypeErr deSwitch(Node *node)
 	}
 	case NodeType::AST_CASE: {
 		auto children = node->getChildren();
+		Node * type = (Node *)children[1];
 		Node * asttypechild = (Node *)children[2];
-
+		if (globalTypeList.count(type->valType) == 0) {
+			cerr << node->lineNumber << ": type '" << type->valType << "' not defined" << endl;
+			numErrors++;
+			node->valType = "Object";
+			break;
+		}
 		node->valType = asttypechild->valType;
 		break;
 	}
@@ -152,6 +169,12 @@ TypeErr deSwitch(Node *node)
 		break;
 	case NodeType::AST_NEW: {
 		Node * child = (Node *)node->getChild();
+		if (globalTypeList.count(child->valType) == 0) {
+			cerr << node->lineNumber << ": type '" << child->valType << "' not defined" << endl;
+			numErrors++;
+			node->valType = "Object";
+			break;
+		}
 		if (child->valType == "SELF_TYPE") {
 			node->valType = globalSymTable->getCurrentClass();	
 		}
@@ -264,7 +287,6 @@ TypeErr deSwitch(Node *node)
 		node->getChildren();
 		Node *left = (Node *)node->getLeftChild();
 		Node *right = (Node *)node->getRightChild();
-		//if (left->valType != right->valType) {
 		if(!globalSymTable->isSubClass(left->valType,right->valType)) {
 			cerr << node->lineNumber << ": TYPE MISMATCH IN AST_LARROW ";
 			cerr << "LEFT  TYPE IS " << left->valType << " ";
@@ -280,10 +302,7 @@ TypeErr deSwitch(Node *node)
 	case NodeType::AST_LET: {
 		auto children = node->getChildren();
 		Node * letexpression  = (Node *)children[1];
-
-		
 		node->valType = letexpression->valType;
-		
 		break;
 	}
 	case NodeType::AST_TILDE: {
@@ -393,7 +412,12 @@ TypeErr deSwitch(Node *node)
 	case NodeType::AST_IDTYPEEXPR: {
 		Node *expr = (Node *)node->getChildren()[2];
 		Node *type = (Node *)node->getChildren()[1];
-		if (expr->type != NodeType::AST_NULL && expr->valType != type->valType) {
+		if (globalTypeList.count(type->valType) == 0) {
+			cerr << node->lineNumber << ": type '" << type->valType << "' not defined" << endl;
+			numErrors++;
+			break;
+		}
+		if (expr->type != NodeType::AST_NULL && !globalSymTable->isSubClass(expr->valType, type->valType)) {
 			cerr << node->lineNumber << ": Type mismatch. DECLARED TYPE OF " << type->valType << " BUT DERIVED TYPE OF " << expr->valType << endl;
 			numErrors++;
 		}
@@ -429,7 +453,12 @@ TypeErr deSwitch(Node *node)
 	case NodeType::AST_FEATURE_METHOD: {
 		Node *type = (Node *)node->getChildren()[2];
 		Node *expr = (Node *)node->getChildren()[3];
-		if (type->valType != expr->valType) {
+		if (globalTypeList.count(type->valType) == 0) {
+			cerr << node->lineNumber << ": type '" << type->valType << "' not defined" << endl;
+			numErrors++;
+			break;
+		}
+		if(!globalSymTable->isSubClass(expr->valType, type->valType)) {
 			cerr << node->lineNumber <<  ": Type mismatch. DECLARED TYPE OF " << type->valType << " BUT DERIVED TYPE OF " << expr->valType << endl;
 			numErrors++;
 		}
@@ -438,6 +467,11 @@ TypeErr deSwitch(Node *node)
 	case NodeType::AST_FEATURE_ATTRIBUTE: {
 		Node *expr = (Node *)node->getChildren()[2];
 		Node *type = (Node *)node->getChildren()[1];
+		if (globalTypeList.count(type->valType) == 0) {
+			cerr << node->lineNumber << ": type '" << type->valType << "' not defined" << endl;
+			numErrors++;
+			break;
+		}
 		if (expr->type != NodeType::AST_NULL && expr->valType != type->valType) {
 			cerr << node->lineNumber << ": Type mismatch. LEFT SIDE IS TYPE " << type->valType << " BUT RIGHT SIDE IS TYPE " << expr->valType << endl;
 			numErrors++;

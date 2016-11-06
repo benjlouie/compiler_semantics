@@ -1,4 +1,4 @@
-#include "symboltable.h"
+#include "symbolTable.h"
 
 
 SymbolTable::SymbolTable(string scopeName) {
@@ -78,6 +78,18 @@ string SymbolTable::getCurrentClass()
 
 bool SymbolTable::isSubClass(string sub, string super)
 {
+	if (super == "Object") {
+		return true;
+	}
+	if (sub == super) {
+		return true;
+	}
+	if (sub == "SELF_TYPE") {
+		sub = getCurrentClass();
+	}
+	if (super == "SELF_TYPE") {
+		super = getCurrentClass();
+	}
 	while (sub != "Object" && sub != super) {
 		sub = globalTypeList[sub];
 	}
