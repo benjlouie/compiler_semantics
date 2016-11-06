@@ -1,8 +1,21 @@
+/*********************************************
+* Authors: Ben Loue, Matthew Karasz
+* Sub-authors: Benji Cope
+*
+* This file handles the classes and their inheritance. It properly checks for improper inheritance and adds the classes to the symbol table.
+**********************************************/
+
 #include "../compiler_semantics/classInheritance.h"
 
 void scopeClasses(unordered_map<string, vector<string>> &classMap, string &start);
 void setupBuiltinClasses(void);
 
+/**
+* setupClasses() is the main pass for all the classes contained in the program.
+* First, it iterates through the classes and checks for class redefinitions while organizing the classes into a usable data structure.
+* Second, it recurses throught the classes and builds the appropriate symbol table entries.
+* Finally, it checks for bad/cyclic inheritance using the result of the second step.
+*/
 ClassErr setupClasses(void)
 {
 	auto classNodes = root->getChildren();
@@ -15,13 +28,14 @@ ClassErr setupClasses(void)
 	classMap["Object"].push_back("IO");
 	classMap["Object"].push_back("String");
 
-
+	//populates the inherits lists for the scoping and checking step
 	for (Tree *tchild : classNodes) {
 		Node *child = (Node *)tchild;
 		auto classDescNodes = child->getChildren();
 		string className = ((Node *)classDescNodes[0])->value;
 		string inherits = ((Node *)classDescNodes[1])->value;
 
+		//check for class redefinition
 		if (globalTypeList.count(className) > 0) {
 			cerr << "Class \"" << className << "\" redefined" << "\n";
 			return ClassErr::MULTI_DEF;
@@ -32,9 +46,9 @@ ClassErr setupClasses(void)
 		classMap[inherits].push_back(className);
 	}
 
+	//add classes to scope and reveal any cyclic/bad inheritance
 	string startingClass = "Object";
 	scopeClasses(classMap, startingClass);
-	//all classes should be checked now
 
 	//check for bad/cyclic class inheritance
 	if (classMap.size() > 0) {
@@ -51,10 +65,17 @@ ClassErr setupClasses(void)
 	return ClassErr::OK;
 }
 
+/**
+* scopeClasses() is the recursive backbone of setupClasses().
+* It recursively iterates throught the passes in classMap and adds the classes to the ssymbol table tree.
+* It begins from the starting point ("Object") and expands any classes that inherit from that.
+* Any classes leftover once it finishes must have bad or cyclic inheritance.
+*/
 void scopeClasses(unordered_map<string, vector<string>> &classMap, string &start) {
 	if (classMap.count(start) == 0) {
 		return;
 	}
+	//special case, cannot be inherited from
 	if (start == "Int" || start == "Bool") {
 		return;
 	}
@@ -75,6 +96,11 @@ void scopeClasses(unordered_map<string, vector<string>> &classMap, string &start
 	classMap.erase(start);
 }
 
+/**
+* setupBuiltinClasses initializes Cool's builtin classes.
+* The default classes and their methods are added to the symbol table
+* The default classes are also added to the default type list so they may be referenced.
+*/
 void setupBuiltinClasses(void)
 {
 	vector<string> argList;
@@ -144,7 +170,6 @@ void setupBuiltinClasses(void)
 	globalTypeList["String"] = "Object";
 	globalSymTable->leaveScope();
 
-	//TODO: do we add Int and Bool to scope? they can't be inherited from so maybe not?
 	//Int
 	//Bool
 	//just add to type list

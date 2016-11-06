@@ -1,3 +1,10 @@
+/*********************************************
+* Authors: Ben Loue, Matthew Karasz
+* Sub-authors: Benji Cope
+*
+* This file handles the classes and their inheritance. It properly checks for improper inheritance and adds the classes to the symbol table.
+**********************************************/
+
 #ifndef __CLASSINHERITANCE_H_
 #define __CLASSINHERITANCE_H_
 
