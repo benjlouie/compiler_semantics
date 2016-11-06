@@ -474,7 +474,7 @@ TypeErr deSwitch(Node *node)
 			numErrors++;
 			break;
 		}
-		if (expr->type != NodeType::AST_NULL && expr->valType != type->valType) {
+		if (expr->type != NodeType::AST_NULL && !globalSymTable->isSubClass(expr->valType, type->valType)) {
 			cerr << node->lineNumber << ": Type mismatch. LEFT SIDE IS TYPE " << type->valType << " BUT RIGHT SIDE IS TYPE " << expr->valType << endl;
 			numErrors++;
 		}
