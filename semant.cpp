@@ -11,10 +11,12 @@ void semant()
 		break;
 	case ClassErr::MULTI_DEF:
 		cerr << "Class Error: Multiple class definitions\n";
+		numErrors++;
 		exit(-1);
 		break;
 	case ClassErr::CYCLIC_BAD_INHERITANCE:
 		cerr << "Class Error: Bad or Cyclic class inheritance\n";
+		numErrors++;
 		exit(-1);
 		break;
 	}
