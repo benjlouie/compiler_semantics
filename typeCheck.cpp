@@ -1,3 +1,9 @@
+/*****************************************************************************************************
+*	Main Authors: Matt karasz, Benjamin Cope, Ben Louie, Robert Blasi, Forest Thomas
+*	Sub Authors: 
+*
+*	Description: This file recursively walks the AST from the bottom up checking types as it goes
+******************************************************************************************************/
 #include "typeCheck.h"
 #include <iostream>
 
@@ -6,6 +12,8 @@ TypeErr typeCheck_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned &
 TypeErr deSwitch(Node *node);
 string lub(vector<string> classes);
 
+/*	This function starts the main typechecking pass.
+*/
 TypeErr typeCheck(void)
 {
 	while (globalSymTable->getScope() != "Object") {
@@ -16,6 +24,9 @@ TypeErr typeCheck(void)
 	return typeCheck_recursive(root, letCount, caseCount);
 }
 
+/*	This function recursively descends through the AST.It sets up the scope for the calls to
+	our main switch statement to typecheck each node type.
+*/
 TypeErr typeCheck_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned &currentCaseCount)
 {
 	//process children
@@ -47,6 +58,9 @@ TypeErr typeCheck_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned &
 			break;
 		}
 
+		/*	When encountering an AST_LET node enter a new scope, name it "let" followed
+		by the value of currentLetCount, and increment currentLetCount.	
+		*/
 		case NodeType::AST_LET:
 			if (ASTNode->type != NodeType::AST_LET) {
 				globalSymTable->enterScope("let" + to_string(currentLetCount));
@@ -54,6 +68,11 @@ TypeErr typeCheck_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned &
 				currentLetCount++;
 			}
 			break;
+
+
+		/*	When encountering an AST_FEATURE_METHOD node enter a new scope and name it
+			the same name as the method
+		*/
 		case NodeType::AST_FEATURE_METHOD:
 		{
 			string methodName = ((Node *)child->getChildren()[0])->value;
@@ -61,6 +80,11 @@ TypeErr typeCheck_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned &
 			enteredNewScope = true;
 			break;
 		}
+
+		/*	When encountering an AST_CASE node enter a new scope, name it "case" followed
+			by the value of currentCaseCount, and increment currentCaseCount for future
+			AST_CASE nodes.
+		*/
 		case NodeType::AST_CASE:
 		{
 			globalSymTable->enterScope("case" + to_string(currentCaseCount));
@@ -97,6 +121,8 @@ TypeErr typeCheck_recursive(Node *ASTNode, unsigned &currentLetCount, unsigned &
 	return deSwitch(ASTNode);
 }
 
+/*	This function is a large switch statement which decides how to type check each node type
+*/
 TypeErr deSwitch(Node *node)
 {
 	auto children = node->getChildren();
@@ -113,6 +139,14 @@ TypeErr deSwitch(Node *node)
 	}
 
 	switch (node->type) {
+	/*	This case handles AST_IDENTIFIER nodes. The case checks to make sure that the
+		type listed for the id is reachable from the current scope. If the id is not
+		reachable then an error message is printed, the error counter is incremented, and
+		the node is assigned type Object to allow semantic analysis to continue. If there
+		are no errors then the node is assigned the value in its type field. In this case
+		the string in the type field is the type listed for the id. EX X:Int, Int would be
+		in the type field.
+	*/
 	case NodeType::AST_IDENTIFIER: {
 		SymTableVariable *var = globalSymTable->getVariable(node->value);
 		if (var == nullptr) {
@@ -123,6 +157,14 @@ TypeErr deSwitch(Node *node)
 		node->valType = var->type;
 		break;
 	}
+	
+	/*	This case handles AST_CASE nodes. The case first checks to make sure that the defined
+		type of one specific case usable in the current scope. If that type is not usable
+		then an error message is printed, the error counter is incremented, and the node is
+		assigned type Object to allow semantic analysis to continue. If there are no errors
+		then the node is assigned the type of its third child. In this case the third child
+		is the expression of the specific case. 
+	*/
 	case NodeType::AST_CASE: {
 		auto children = node->getChildren();
 		Node * type = (Node *)children[1];
@@ -136,9 +178,26 @@ TypeErr deSwitch(Node *node)
 		node->valType = asttypechild->valType;
 		break;
 	}
+
+	/*	This case handles AST_TYPE nodes. The case simply assigns the type of the node
+		to be the value of the node. In this case value is the string listed as the type
+		for an assignment or declaration.
+	*/
 	case NodeType::AST_TYPE:
 		node->valType = node->value;
 		break;
+
+	/*	This case handles AST_IF nodes. The case firsts checks to make sure the first child
+		is type Bool. In this case the first child is the condition of the if statement. Next
+		the case checks to see if the types of the second and third child are reachable from
+		the current scope. Then the case gets the types of the second and third child and finds
+		the least upper bound of the two of them. In this case the second child is the 
+		expression following the THEN keyword and the third child is the expression following
+		the ELSE keyword. If there are any errors then an error message is printed, the error
+		counter is incremented and the node is assigned type Object to allow semantic analysis
+		to continue. If there are no errors then the node is assigned the type of the least
+		upper bound of its THEN and ELSE child.
+	*/
 	case NodeType::AST_IF: {
 		//Node(AST_IF,3,$2,$4,$6)
 		auto children = node->getChildren();
@@ -166,9 +225,20 @@ TypeErr deSwitch(Node *node)
 
 		break;
 	}
+
+	/*	This case handles AST_ISVOID nodes. The case simply assigns type Bool to the node.
+	*/
 	case NodeType::AST_ISVOID:
 		node->valType = "Bool";
 		break;
+
+	/*	This case handles AST_NEW nodes. The case first checks to make sure that the type
+		being used in the NEW actually exists and is useable in the current scope. If the
+		type is not valid then an error message is printed, the error counter is incremented,
+		and the node is assigned type object to allow semantic analysis to continue. If the 
+		type being used is SELF_TYPE then the node is assigned the type of the current class.
+		Otherwise the node is assigned the type of its child.
+	*/
 	case NodeType::AST_NEW: {
 		Node * child = (Node *)node->getChild();
 		if (globalTypeList.count(child->valType) == 0 && child->valType != "SELF_TYPE") {
@@ -185,8 +255,16 @@ TypeErr deSwitch(Node *node)
 		}
 		break;
 	}
+
+	/*	This case handles AST_NOT nodes. The case checks to make sure that the expression
+		to the right side of the NOT is of type Bool, sice NOT only works on Bools.
+		If the expresion is not of type Bool then an error message is printed and the 
+		error counter is incremented. Regardless of whether or not there were errors 
+		the node is assigned type Bool. This is done to allow semantic analysis to continue
+		and to avoid cascading errors.
+	*/
 	case NodeType::AST_NOT: {
-		//check for BOOL
+		
 		Node* child = (Node *)node->getChild();
 		if (child->valType != "Bool") {
 			cerr << node->lineNumber << ": RIGHT HAND SIDE OF AST_NOT IS NOT BOOLEAN TYPE" << endl;
@@ -197,29 +275,55 @@ TypeErr deSwitch(Node *node)
 		}
 		break;
 	}
+
+	/*	This case handles AST_WHILE nodes. The case first checks to ensure that the 
+		comparison expression is type Bool and if it is not type Bool then an error is 
+		printed and the error counter is incremented. Regardless of whether or not there
+		were errors the node is assigned type Object because whiles always evaluate to type
+		Object anyway.
+	*/
 	case NodeType::AST_WHILE: {
-		//Node(AST_WHILE,2,$2,$4)
+		//Node(AST_WHILE,2,$2,$4) Our grammar rule.
 
 		auto children = node->getChildren();
 		Node * expressiontest = (Node *)children[0];
 
-		//if stuff
+		//check the type of the comparison
 		if (expressiontest->valType != "Bool") {
 			cerr << node->lineNumber << ": ERROR IN EXPRESION TEST, SHOULD BE BOOLEAN BUT IS TYPE " << expressiontest->valType << endl;
 		}
 		node->valType = "Object";
 		break;
 	}
+
+	/*	This case handles AST_INTEGERLITERAL nodes. The case simply assigns type
+		Int to the node.
+	*/
 	case NodeType::AST_INTEGERLITERAL:
 		node->valType = "Int";
 		break;
+
+	/*	This case handles AST_STRING nodes. The case simply assigns type String to the node.
+	*/
 	case NodeType::AST_STRING:
 		node->valType = "String";
 		break;
+
+	/*	This case handles AST_TRUE and AST_FALSE nodes since they are semantically 
+		equivalent. The case just assigns the node type Bool.
+	*/
 	case NodeType::AST_TRUE:
 	case NodeType::AST_FALSE:
 		node->valType = "Bool";
 		break;
+
+	/*	This case handles AST_MINUS, AST_PLUS, AST_DIVIDE, and AST_TIMES nodes since they
+		are all equivalent for semantic analysis. All four of these operators only work
+		with type Int so the case first makes sure both sides of the operator are type Int.
+		If there are any error then an error message is printed, the error counter is 
+		incremented, and the node is assigned type Object to allow semantic analysis to
+		continue. If there are no errors then the node is assigned type Int.
+	*/
 	case NodeType::AST_MINUS:
 	case NodeType::AST_PLUS:
 	case NodeType::AST_DIVIDE:
@@ -246,6 +350,17 @@ TypeErr deSwitch(Node *node)
 		}
 		break;
 	}
+	
+	/*	This case handles AST_EQUALS nodes. Since Ints, Strings, and Bools can only be compared
+		with the same type we have two cases. If one of the two sides of the comparison is
+		Int, String, or Bool then we check that the other side is also Int, String, or Bool.
+		So Int must be compared with Int, Bool must be compared with Bool, and String must be
+		compared with String. If the two sides are not the same type then an error message
+		is printed and the error counter is incremented. If both sides of the comparison
+		are any type other than Int,String,Bool then the node is assigned type Bool. However,
+		in the event of an error the node is assigned type Bool anyway to both allow 
+		semantic analysis to continue and to avoid cascading errors.
+	*/
 	case NodeType::AST_EQUALS: {
 		node->getChildren();
 		Node *left = (Node *)node->getLeftChild();
@@ -269,6 +384,13 @@ TypeErr deSwitch(Node *node)
 		node->valType = "Bool";
 		break;
 	}
+
+	/*	This case handles AST_LE and AST_LT since they are both equivalent in semantic
+		analysis. Since < and <= only works on type Int the case checks to make sure
+		both the left and right sides of the comparison are type Int. If they are not
+		then an error message is printed and the error counter is incremented. If both 
+		sides are type Int then the node is assigned type Bool.
+	*/
 	case NodeType::AST_LE:
 	case NodeType::AST_LT: {
 		node->getChildren();
@@ -285,6 +407,14 @@ TypeErr deSwitch(Node *node)
 		node->valType = "Bool";
 		break;
 	}
+
+	/*	This case handles AST_LARROW nodes. The case first checks to make sure
+		that the type of the left side of the <- matches the type of the right
+		side of the <-. If both sides match then the node is assigned the type of
+		both sides. If the sides do not match then an error message is printed out,
+		the error counter is incremented, and the node is assigned type object to
+		allow semantic analysis to continue.
+	*/
 	case NodeType::AST_LARROW: {
 		node->getChildren();
 		Node *left = (Node *)node->getLeftChild();
@@ -301,14 +431,25 @@ TypeErr deSwitch(Node *node)
 		}
 		break;
 	}
+
+	/*	This case handles AS_LET nodes. The case simply assigns the type of the
+		expression at the end of the let to the let node.
+	*/
 	case NodeType::AST_LET: {
 		auto children = node->getChildren();
 		Node * letexpression  = (Node *)children[1];
 		node->valType = letexpression->valType;
 		break;
 	}
+	
+	/*	This case handles AST_TILDE nodes. The case first checks to make sure that
+		the expresion to the right of the tilde evaluates to type Int. If the 
+		expression is not of type Int then an error message is printed and the error
+		counter is incremented. If there are no errors then the node is assigned type 
+		Int.
+	*/
 	case NodeType::AST_TILDE: {
-		//check for INT
+		
 		Node* child = (Node *)node->getChildren()[0];
 		if (child->valType != "Int") {
 			cerr << node->lineNumber <<  ": RIGHT SIDE OF TILDE EXPECTS TYPE INT BUT IS TYPE "<< child->valType << endl;
@@ -320,6 +461,17 @@ TypeErr deSwitch(Node *node)
 		}
 		break;
 	}
+
+	/*	This case handles AST_DISPATCH nodes. In case 1 we simply set a temporary variable 
+		for handling later. In case 2 we again just set a temporary variable for later.
+		In case 3 we check to make sure we do not have @SELF_TYPE since that is not allowed
+		in COOL, otherwise we set a temporary variable for later. We then check to make sure
+		the method being called can actually be reached from the current scope. We then make
+		a vector of input arguements being passed to the method being called and make sure 
+		that the vector of arguements matches the method definition for the method being called.
+		Finally we assign the type of the node based on that temporary variable we set earlier
+		if all error checking is passed.
+	*/
 	case NodeType::AST_DISPATCH: {
 		Node *caller = (Node *)node->getChildren()[0];
 		Node *atType = (Node *)node->getChildren()[1];
@@ -328,15 +480,17 @@ TypeErr deSwitch(Node *node)
 		SymTableMethod *method;
 		int type;
 
-		/* Case 1: calling a method within the class*/
+		/* Case 1: calling a method within the class */
 		if (caller->type == NodeType::AST_NULL || (caller->valType == "SELF_TYPE" && atType->type == NodeType::AST_NULL)) {
 			method = globalSymTable->getMethod(id->value);
 			type = 0;
 		}
+		/* Case 2: calling a method from an object */
 		else if (atType->type == NodeType::AST_NULL) { //specify an object
 			method = globalSymTable->getMethodByClass(id->value, caller->valType);
 			type = 1;
 		}
+		/* Calling a method with the @ symbol */
 		else { //Specify which class to use
 			if (atType->valType == "SELF_TYPE") {
 				cerr << node->lineNumber << ": Cannot have @SELF_TYPE" << endl;
@@ -374,8 +528,7 @@ TypeErr deSwitch(Node *node)
 		}
 		else {
 			for (int i = 0; i < param_types.size(); i++) {
-				//if (param_types[i] != method->argTypes[i]) {
-				if (!globalSymTable->isSubClass(param_types[i], method->argTypes[i])) {//TODO write this method
+				if (!globalSymTable->isSubClass(param_types[i], method->argTypes[i])) {
 					cerr << node->lineNumber << ": Type of parameter given: " << param_types[i] << ", expected: " << method->argTypes[i] << " in method " << id->value << endl;
 					numErrors++;
 				}
@@ -403,6 +556,10 @@ TypeErr deSwitch(Node *node)
 		}
 		break;
 	}
+
+	/*	This case handles AST_EXPRESEMILIST nodes. This case just assigns the type of the 
+		last child to the type of the node.
+	*/
 	case NodeType::AST_EXPRSEMILIST: {
 		auto children = node->getChildren();
 		Node * lastchild = (Node *)children[children.size()-1];
@@ -411,6 +568,12 @@ TypeErr deSwitch(Node *node)
 
 		break;
 	}
+	
+	/*	This case handles AST_IDTYPEEXPR nodes. The case starts by checking to make sure 
+		that both children are valid/declared type. If both children are valid types then
+		no type is assigned to the node because it is not needed. If they are not both valid
+		types then the proper error messages are printed and the error count is incremented.
+	*/
 	case NodeType::AST_IDTYPEEXPR: {
 		Node *expr = (Node *)node->getChildren()[2];
 		Node *type = (Node *)node->getChildren()[1];
@@ -425,6 +588,14 @@ TypeErr deSwitch(Node *node)
 		}
 		break;
 	}
+
+	/*	This case handles AST_CASESTATMENT nodes. It first makes a vector of the types
+		of all the children of the node. It then checks that every element of the vector is
+		a valid/declared type. Finally if all types are valid then the casestatement is 
+		set to be the least upper bound of all the types in the vector. If not all types are 
+		valid/declared then the proper error messages are printed and the error counter is 
+		incremented.
+	*/
 	case NodeType::AST_CASESTATEMENT: {
 		vector<string> types;
 		Node *case_node;
@@ -452,6 +623,14 @@ TypeErr deSwitch(Node *node)
 		}
 		break;
 	}
+
+	/*	This case handles AST_FEATURE_METHOD nodes. It first checks to make sure that
+	the children of the feature are all valid/declared types. It then checks to make sure
+	that the expression side of the statement evaluates to the same type as the type side
+	of the statement. If no errors are found then no type is assigned to the node since
+	feature attributes dont need to be type checked. If an error is found then the proper
+	error is printed and the error count is incremented.
+	*/
 	case NodeType::AST_FEATURE_METHOD: {
 		Node *type = (Node *)node->getChildren()[2];
 		Node *expr = (Node *)node->getChildren()[3];
@@ -466,6 +645,14 @@ TypeErr deSwitch(Node *node)
 		}
 		break;
 	}
+	
+	/*	This case handles AST_FEATURE_ATTRIBUTE nodes. It first checks to make sure that
+		the children of the feature are all valid/declared types. It then checks to make sure
+		that the expression side of the statement evaluates to the same type as the type side
+		of the statement. If no errors are found then no type is assigned to the node since 
+		feature attributes dont need to be type checked. If an error is found then the proper
+		error is printed and the error count is incremented.
+	*/
 	case NodeType::AST_FEATURE_ATTRIBUTE: {
 		Node *expr = (Node *)node->getChildren()[2];
 		Node *type = (Node *)node->getChildren()[1];
@@ -488,12 +675,14 @@ TypeErr deSwitch(Node *node)
 	return TypeErr::TYPE_OK;
 }
 
-/* This function does not perserve formal classes, so don't use it after
- * calling this
+/*	This function is used to find the class which is the least upper bound of a given vector
+	of types. 
  */
 string lub(vector<string> classes) {
-	/* check if classes contain self type*/
+	
 	int counter = 0;
+
+	/* check if classes contain self type*/
 	for (string s : classes) {
 		if (s == "SELF_TYPE") {
 			counter++;
@@ -506,11 +695,11 @@ string lub(vector<string> classes) {
 		return "Object";
 	}
 
-	/* gotta get the distances to Object first */
+
 	vector<int> distances(classes.size()); //all init to 0
 	string tmp;
 
-	//TYPECHECK MOTHERFUCKER YOU SHOULD USE IT
+	/*	Finds the distance to object for each type in the vector */
 	int n = classes.size(); //we'll be using this a whole lot
 	for (int i = 0; i < n; i++) {
 		tmp = classes[i];
