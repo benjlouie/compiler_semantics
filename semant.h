@@ -2,6 +2,8 @@
 * Authors: Everyone
 * Sub-authors:
 *
+* Description: Header file for semant.cpp and
+* contains the reference to the globalSymTable
 **********************************************/
 
 #ifndef __SEMANT_H_

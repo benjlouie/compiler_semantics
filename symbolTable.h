@@ -2,6 +2,8 @@
 * Authors: Forest and Ben
 * Sub-authors: Robert, Matt
 *
+* Description: Contains the function headers for
+* creating the symbol table
 **********************************************/
 
 #ifndef __SYMBOLTABLE_H_

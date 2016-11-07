@@ -2,6 +2,9 @@
 * Authors: Everyone
 * Sub-authors:
 *
+* Description: Sets up the globalSymTable and
+* checks for cyclic inheritance and multiple
+* class definitions
 **********************************************/
 
 #include "../compiler_semantics/semant.h"
