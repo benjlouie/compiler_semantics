@@ -2,6 +2,8 @@
 * Authors: Forest and Ben
 * Sub-authors: Robert, Matt
 *
+* Description: Contains the functions used by
+* symbol table in order to accurately generate the table
 **********************************************/
 
 #include "symbolTable.h"
