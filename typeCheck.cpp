@@ -152,6 +152,7 @@ TypeErr deSwitch(Node *node)
 		if (var == nullptr) {
 			cerr << node->lineNumber << ": Variable " << node->value << " Not found in current scope" << endl;
 			node->valType = "Object";
+			numErrors++;
 			break;
 		}
 		node->valType = var->type;
@@ -208,6 +209,7 @@ TypeErr deSwitch(Node *node)
 		//if stuff
 		if (iftest->valType != "Bool") {
 			cerr << node->lineNumber << ": IF CONDITION DOES NOT EVALUATE TO BOOLEAN" << endl;
+			numErrors++;
 		}
 		vector<string> types;
 		types.push_back(thenchild->valType);
@@ -217,6 +219,7 @@ TypeErr deSwitch(Node *node)
 
 		if ((globalTypeList.count(types[0]) == 0 && types[0] != "SELF_TYPE" ) || (globalTypeList.count(types[1]) == 0 && types[1] != "SELF_TYPE")) {
 			cerr << node->lineNumber << ": Undeclared type in IF-Then-Else Block" << endl;
+			numErrors++;
 			node->valType = "Object";
 		}
 		else {
@@ -269,6 +272,7 @@ TypeErr deSwitch(Node *node)
 		if (child->valType != "Bool") {
 			cerr << node->lineNumber << ": RIGHT HAND SIDE OF AST_NOT IS NOT BOOLEAN TYPE" << endl;
 			node->valType = "Bool";
+			numErrors++;
 		}
 		else {
 			node->valType = "Bool";
@@ -291,6 +295,7 @@ TypeErr deSwitch(Node *node)
 		//check the type of the comparison
 		if (expressiontest->valType != "Bool") {
 			cerr << node->lineNumber << ": ERROR IN EXPRESION TEST, SHOULD BE BOOLEAN BUT IS TYPE " << expressiontest->valType << endl;
+			numErrors++;
 		}
 		node->valType = "Object";
 		break;
@@ -495,6 +500,7 @@ TypeErr deSwitch(Node *node)
 			if (atType->valType == "SELF_TYPE") {
 				cerr << node->lineNumber << ": Cannot have @SELF_TYPE" << endl;
 				node->valType = "Object";
+				numErrors++;
 				break;
 			}
 			method = globalSymTable->getMethodByClass(id->value, atType->valType);

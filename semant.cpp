@@ -69,6 +69,9 @@ void semant()
 		}
 	}
 
+	/* check symbol table for multiple definitions of functions */
+	globalSymTable->checkFunctions();
+
 	typeCheck();
 	
 	
