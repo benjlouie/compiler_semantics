@@ -248,3 +248,72 @@ SymTableMethod *SymbolTable::getMethodByClass(string method, string cls) {
 	}
 	return nullptr;
 }
+
+/**
+* Checks to make sure that if a child has a function with the same name as a parent
+* then the signatures of those methods match. increments error count if so
+*/
+void SymbolTable::checkFunctions(void) {
+	/* add pointers of each class's Symnode to a vector */
+	queue<SymNode *> q;
+	vector<SymNode *> classes;
+	q.push(symRoot);
+	SymNode *tmp;
+	while (!q.empty()) {
+		tmp = q.front();
+		q.pop();
+		for (auto chld : tmp->children) {
+			if (globalTypeList.count(chld->name) != 0) {
+				q.push(chld);
+				classes.push_back(chld);
+			}
+		}
+	}
+	/* For each class's methods, check that if it is defined in an ancestor
+	   then the ancestor's definition is consistent with it's own*/
+	//TODO: This should be cleaned up and made more efficient
+	SymNode *ancestor;
+	vector<pair<string, SymTableMethod>> methods;
+	SymTableMethod check;
+	vector<string> params1, params2;
+	for (auto cl : classes) {
+		if (cl->name == "Int" || cl->name == "Bool" || cl->name == "String" || cl->name == "Object" || cl->name == "IO")
+			continue;
+		for (auto method : cl->methods) {
+			methods.push_back(method);
+		}
+		ancestor = cl->parent;
+		while (ancestor != nullptr) {
+			for (auto parent_method : ancestor->methods) {
+				for (auto child_method : methods) {
+					if (parent_method.first == child_method.first) { //names match
+						if (parent_method.second.returnType != child_method.second.returnType) { //check return types matching
+							numErrors++;
+							cerr << "In class " << cl->name << " mismatch in return type of method " << parent_method.first << " previously declared in " << ancestor->name << endl;
+						}
+						else { //check rest of parameters match
+							params1 = parent_method.second.argTypes;
+							params2 = child_method.second.argTypes;
+							if (params1.size() != params2.size()) {
+								numErrors++;
+								cerr << "In class " << cl->name << " mismatch in number of parameters to method " << parent_method.first << " previously declared in " << ancestor->name << endl;
+							}
+							else {
+								for (int i = 0; i < params1.size(); i++) {
+									if (params1[i] != params2[i]) {
+										numErrors++;
+										cerr << "In class " << cl->name << " mismatch in types of parameters to method " << parent_method.first << " previously declared in " << ancestor->name << endl;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			ancestor = ancestor->parent;
+		}
+		while (methods.size() != 0) //empty methods list for next class
+			methods.pop_back();
+		
+	}
+}

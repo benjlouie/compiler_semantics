@@ -18,6 +18,7 @@
 using namespace std;
 
 extern std::unordered_map<std::string, std::string> globalTypeList;
+extern int numErrors;
 
 class SymTableVariable
 {
@@ -103,6 +104,7 @@ public:
 
 	SymTableMethod *getMethodByClass(std::string method, std::string cls);
 
+	void checkFunctions(void);
 };
 
 #endif //__SYMBOLTABLE_H_
