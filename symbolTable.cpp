@@ -316,4 +316,10 @@ void SymbolTable::checkFunctions(void) {
 			methods.pop_back();
 		
 	}
+
+	
+}
+
+void SymbolTable::goToRoot(void) {
+	cur = symRoot;
 }

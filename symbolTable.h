@@ -105,6 +105,8 @@ public:
 	SymTableMethod *getMethodByClass(std::string method, std::string cls);
 
 	void checkFunctions(void);
+
+	void goToRoot(void);
 };
 
 #endif //__SYMBOLTABLE_H_
