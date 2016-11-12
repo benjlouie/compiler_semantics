@@ -106,6 +106,15 @@ public:
 
 	void checkFunctions(void);
 
+	/**
+	 * gets the names of all scopes in the children of cur
+	 */
+	vector<string> getChildrenNames(void);
+
+	/**
+	 * gets the names of all methods in the current scope
+	 */
+	vector<string> getMethodNames();
 	void goToRoot(void);
 };
 

@@ -316,6 +316,29 @@ void SymbolTable::checkFunctions(void) {
 			methods.pop_back();
 		
 	}
+}
+
+/**
+ * authors: Forest, Benji
+ */
+vector<string> SymbolTable::getChildrenNames() {
+	vector<string> names;
+	for (auto chld : cur->children) {
+		names.push_back(chld->name);
+	}
+	return names;
+}
+
+/**
+ * authors: Forest, Benji
+ */
+vector<string> SymbolTable::getMethodNames() {
+	vector<string> methods;
+	for (auto meth : cur->methods) {
+		methods.push_back(meth.first); //meth first kids
+	}
+	return methods;
+}
 
 	
 }
