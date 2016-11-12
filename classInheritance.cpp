@@ -76,7 +76,7 @@ void scopeClasses(unordered_map<string, vector<string>> &classMap, string &start
 		return;
 	}
 	//special case, cannot be inherited from
-	if (start == "Int" || start == "Bool") {
+	if (start == "Int" || start == "Bool" || start == "String") {
 		return;
 	}
 
@@ -89,7 +89,6 @@ void scopeClasses(unordered_map<string, vector<string>> &classMap, string &start
 		else {
 			globalSymTable->addAndEnterScope(className);
 		}
-		globalSymTable->addVariable("self", "SELF_TYPE");
 		scopeClasses(classMap, className);
 		globalSymTable->leaveScope();
 	}
@@ -109,6 +108,7 @@ void setupBuiltinClasses(void)
 		globalSymTable->leaveScope();
 	}
 	//Object
+	globalSymTable->addVariable("self", "SELF_TYPE");
 	//abort()
 	globalSymTable->addMethod("abort", argList, "Object");
 	globalSymTable->addScope("abort");
