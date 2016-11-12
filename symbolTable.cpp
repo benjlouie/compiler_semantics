@@ -339,3 +339,10 @@ vector<string> SymbolTable::getMethodNames() {
 	}
 	return methods;
 }
+
+	
+}
+
+void SymbolTable::goToRoot(void) {
+	cur = symRoot;
+}

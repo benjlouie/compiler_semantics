@@ -115,6 +115,7 @@ public:
 	 * gets the names of all methods in the current scope
 	 */
 	vector<string> getMethodNames();
+	void goToRoot(void);
 };
 
 #endif //__SYMBOLTABLE_H_
