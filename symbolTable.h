@@ -25,6 +25,8 @@ class SymTableVariable
 public:
 	//Type
 	std::string type;
+	size_t depth = 0;
+	size_t offset = 0;
 };
 
 class SymTableMethod
@@ -106,6 +108,8 @@ public:
 
 	void checkFunctions(void);
 
+	void goToRoot(void);
+
 	/**
 	 * gets the names of all scopes in the children of cur
 	 */
@@ -115,7 +119,11 @@ public:
 	 * gets the names of all methods in the current scope
 	 */
 	vector<string> getMethodNames();
-	void goToRoot(void);
+
+	void generateOffsets();
+
+private:
+	void generateOffsets_recursive(SymbolTable::SymNode *cur, size_t depth, size_t curOffset);
 };
 
 #endif //__SYMBOLTABLE_H_

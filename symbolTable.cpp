@@ -340,9 +340,28 @@ vector<string> SymbolTable::getMethodNames() {
 	return methods;
 }
 
-	
-}
-
 void SymbolTable::goToRoot(void) {
 	cur = symRoot;
+}
+
+void SymbolTable::generateOffsets()
+{
+	generateOffsets_recursive(symRoot, 0, 0);
+}
+
+void SymbolTable::generateOffsets_recursive(SymbolTable::SymNode *cur, size_t depth, size_t curOffset)
+{
+	//go through variables
+	size_t localOffset = 0;
+	for (auto it = cur->variables.begin(); it != cur->variables.end(); it++) {
+		SymTableVariable &var = cur->variables[it->first];
+		var.depth = depth;
+		var.offset = curOffset + localOffset;
+		localOffset += 8; //8 bytes for everything
+	}
+
+	//go through children
+	for (auto child : cur->children) {
+		generateOffsets_recursive(child, depth + 1, curOffset + localOffset);
+	}
 }
