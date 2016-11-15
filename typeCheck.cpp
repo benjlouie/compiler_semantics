@@ -604,11 +604,24 @@ TypeErr deSwitch(Node *node)
 	*/
 	case NodeType::AST_CASESTATEMENT: {
 		vector<string> types;
+		unordered_map<string, bool> dupTypeCheck; //only for checking duplicate types
 		Node *case_node;
 		for (auto c : node->getChildren()[1]->getChildren()) {
 			case_node = (Node *) c;
 			types.push_back(case_node->valType);
+
+			//check for duplicate types
+			Node *caseTypeNode = (Node *)case_node->getChildren()[1];
+			if (dupTypeCheck.count(caseTypeNode->value) > 0) {
+				//duplicate type in case statements
+				cerr << caseTypeNode->lineNumber << ": Duplicate type \"" + caseTypeNode->value + "\" in Case Statement" << endl;
+				numErrors++;
+			}
+			else {
+				dupTypeCheck[caseTypeNode->value]; //add to map
+			}
 		}
+		dupTypeCheck.clear(); //no point in keeping the map
 
 		bool badType = false;
 		//for-loop to check each type
