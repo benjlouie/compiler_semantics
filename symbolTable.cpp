@@ -226,7 +226,7 @@ SymTableMethod *SymbolTable::getMethodByClass(string method, string cls) {
 	}
 
 	/* send searcher through path to the correct class */
-	for (int i = path.size() - 1; i >= 0; i--) {
+	for (int i = (int)path.size() - 1; i >= 0; i--) {
 		for (auto c : searcher->children) {
 			if (c->name == path[i]) {
 				searcher = c;
@@ -346,7 +346,7 @@ void SymbolTable::goToRoot(void) {
 
 void SymbolTable::generateOffsets()
 {
-	generateOffsets_recursive(symRoot, 0, 0);
+	generateOffsets_recursive(symRoot, 0, -8);
 }
 
 void SymbolTable::generateOffsets_recursive(SymbolTable::SymNode *cur, size_t depth, size_t curOffset)
@@ -364,4 +364,26 @@ void SymbolTable::generateOffsets_recursive(SymbolTable::SymNode *cur, size_t de
 	for (auto child : cur->children) {
 		generateOffsets_recursive(child, depth + 1, curOffset + localOffset);
 	}
+}
+
+void SymbolTable::countLocals()
+{
+	countLocals_recursive(symRoot);
+}
+
+int SymbolTable::countLocals_recursive(SymbolTable::SymNode *cur)
+{
+	int count = 0;
+	for (auto childScope : cur->children) {
+		if (childScope->name.substr(0, 3) == "let") {
+			count += (int)childScope->variables.size();
+		}
+		else if (childScope->name.substr(0, 4) == "case") {
+			count += (int)childScope->variables.size();
+		}
+		count += countLocals_recursive(childScope);
+	}
+	cur->numLocals = count;
+
+	return count;
 }
