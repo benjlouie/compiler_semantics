@@ -45,6 +45,8 @@ public:
     typedef struct SymNode {
         //Name of the node
         std::string name;
+		//number of locals
+		int numLocals;
         //The variables in this node and their values
 		std::unordered_map<std::string, SymTableVariable> variables;
         //The functions in this node and their expressions
@@ -122,8 +124,11 @@ public:
 
 	void generateOffsets();
 
+	void countLocals();
+
 private:
 	void generateOffsets_recursive(SymbolTable::SymNode *cur, size_t depth, size_t curOffset);
+	int countLocals_recursive(SymbolTable::SymNode *cur);
 };
 
 #endif //__SYMBOLTABLE_H_
