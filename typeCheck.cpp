@@ -517,7 +517,7 @@ TypeErr deSwitch(Node *node)
 		/* build a vector with types of actual parameters*/
 		vector<string> param_types;
 		Node *actual;
-		for (size_t i = params->getChildren().size() - 1; i >= 0; i--) { //they'll be backwards if we do i 0 to n
+		for (int i = ((int)params->getChildren().size()) - 1; i >= 0; i--) { //they'll be backwards if we do i 0 to n
 			actual = (Node *)params->getChildren()[i];
 			if (actual->valType == "SELF_TYPE") {
 				param_types.push_back(globalSymTable->getCurrentClass());
