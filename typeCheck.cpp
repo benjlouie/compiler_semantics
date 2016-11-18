@@ -517,7 +517,7 @@ TypeErr deSwitch(Node *node)
 		/* build a vector with types of actual parameters*/
 		vector<string> param_types;
 		Node *actual;
-		for (int i = params->getChildren().size() - 1; i >= 0; i--) { //they'll be backwards if we do i 0 to n
+		for (size_t i = params->getChildren().size() - 1; i >= 0; i--) { //they'll be backwards if we do i 0 to n
 			actual = (Node *)params->getChildren()[i];
 			if (actual->valType == "SELF_TYPE") {
 				param_types.push_back(globalSymTable->getCurrentClass());
@@ -719,7 +719,7 @@ string lub(vector<string> classes) {
 	string tmp;
 
 	/*	Finds the distance to object for each type in the vector */
-	int n = classes.size(); //we'll be using this a whole lot
+	int n = (int)classes.size(); //we'll be using this a whole lot
 	for (int i = 0; i < n; i++) {
 		tmp = classes[i];
 		while (tmp != "Object") {
