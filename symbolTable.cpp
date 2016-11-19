@@ -387,3 +387,29 @@ int SymbolTable::countLocals_recursive(SymbolTable::SymNode *cur)
 
 	return count;
 }
+
+void SymbolTable::generateTags()
+{
+	queue<SymNode *> classes;
+	classes.push(symRoot);
+	int count = 0;
+
+	while (classes.size() > 0) {
+		SymNode *cls = classes.front();
+		classTags[cls->name] = count++;
+		classes.pop();
+		for (SymNode *subclass : cls->children) {
+			if (globalTypeList.count(subclass->name) > 0) {
+				classes.push(subclass);
+			}
+		}
+	}
+}
+
+int SymbolTable::getClassTag(string className)
+{
+	if (classTags.count(className) > 0) {
+		return classTags[className];
+	}
+	return -1;
+}
