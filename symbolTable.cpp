@@ -406,6 +406,10 @@ void SymbolTable::generateTags()
 	}
 }
 
+/*
+* gets unique tag (int) for each class by distance from object
+* -1 if className doesn't exist
+*/
 int SymbolTable::getClassTag(string className)
 {
 	if (classTags.count(className) > 0) {
