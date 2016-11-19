@@ -126,7 +126,11 @@ public:
 
 	void countLocals();
 
+	void generateTags();
+	int getClassTag(string className);
+
 private:
+	unordered_map<string, int> classTags;
 	void generateOffsets_recursive(SymbolTable::SymNode *cur, size_t depth, size_t curOffset);
 	int countLocals_recursive(SymbolTable::SymNode *cur);
 };

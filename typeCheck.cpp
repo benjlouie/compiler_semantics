@@ -176,6 +176,12 @@ TypeErr deSwitch(Node *node)
 			node->valType = "Object";
 			break;
 		}
+		if (type->value == "SELF_TYPE") { //case cannot be of SELF_TYPE
+			cerr << node->lineNumber << ": using SEFL_TYPE as a case branch type is not allowed" << endl;
+			numErrors++;
+			node->valType = "Object";
+			break;
+		}
 		node->valType = asttypechild->valType;
 		break;
 	}
