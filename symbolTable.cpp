@@ -340,8 +340,24 @@ vector<string> SymbolTable::getMethodNames() {
 	return methods;
 }
 
-void SymbolTable::goToRoot(void) {
+void SymbolTable::goToRoot(void)
+{
 	cur = symRoot;
+}
+
+void SymbolTable::goToClass(std::string className)
+{
+	this->goToRoot();
+
+	vector<string> inheritanceList;
+	while (className != "Object") {
+		inheritanceList.push_back(className);
+		className = globalTypeList[className];
+	}
+	//traverse to class scope
+	for (auto it = inheritanceList.rbegin(); it < inheritanceList.rend(); it++) {
+		this->enterScope(*it);
+	}
 }
 
 void SymbolTable::generateOffsets()

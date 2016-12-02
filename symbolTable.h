@@ -112,6 +112,8 @@ public:
 
 	void goToRoot(void);
 
+	void goToClass(std::string className);
+
 	/**
 	 * gets the names of all scopes in the children of cur
 	 */

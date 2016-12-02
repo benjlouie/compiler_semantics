@@ -74,5 +74,7 @@ void semant()
 
 	typeCheck();
 	
-	
+	//OPTIMIZATION - Loop Unswitching
+	//TODO: add conditional
+	unswitch_loops();
 }
