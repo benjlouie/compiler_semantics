@@ -47,37 +47,39 @@ public:
 class aliasVars {
 	struct aliasData {
 		bool unknownAlias = false;
-		bool classVar = false;
 		string target;
 		unordered_map<string, bool> aliases;
 	};
 	unordered_map<string, aliasData> variables;
 
 public:
+	aliasVars &operator=(const aliasVars &rhs) {
+		variables = rhs.variables;
+		return *this;
+	}
+
 	bool contains(string varName, bool classVar = false) {
 		if (variables.count(varName) > 0) {
-			if (variables[varName].classVar == classVar) {
-				return true;
-			}
+			return true;
 		}
 
 		return false;
 	}
 
-	void set(string varName, string target = "", bool classVar = false) {
+	void set(string varName, string target = "") {
 		//check if it's actually the var we want
-		if (variables.count(varName) > 0) {
+		//TODO: make sure it still works when removing classVar
+		/*if (variables.count(varName) > 0) {
 			if (variables[varName].classVar && classVar) {
 				//var isn't there, don't change anything
 				return;
 			}
-		}
+		}*/
 
 		//create it if not already made
 		variables[varName];
 		//keep track of prev unknownAlias
 		bool prevUnknown = variables[varName].unknownAlias;
-		bool prevClassVar = variables[varName].classVar;
 
 		if (target == "?") {
 			variables[varName].unknownAlias = true;
@@ -86,7 +88,6 @@ public:
 		else {
 			variables[varName].unknownAlias = false;
 		}
-		variables[varName].classVar = classVar;
 
 		//check for cyclics
 		//get end of target path
@@ -107,7 +108,6 @@ public:
 			string newMainVar = it->first;
 			variables[newMainVar].target = ""; //first var is now owner of that mem
 			variables[newMainVar].unknownAlias = prevUnknown;
-			variables[newMainVar].classVar = prevClassVar;
 			variables[newMainVar].aliases.clear();
 			it++;
 			//set the rest of them to point to the first var
@@ -150,7 +150,6 @@ public:
 		}
 		//keep track of prev unknownAlias
 		bool prevUnknown = variables[varName].unknownAlias;
-		bool prevClassVar = variables[varName].classVar;
 		//remove varName from target alias list
 		string oldTarget = variables[varName].target;
 		if (oldTarget != "") {
@@ -164,7 +163,6 @@ public:
 			string newMainVar = it->first;
 			variables[newMainVar].target = ""; //first var is now owner of that mem
 			variables[newMainVar].unknownAlias = prevUnknown;
-			variables[newMainVar].classVar = prevClassVar;
 			variables[newMainVar].aliases.clear();
 			it++;
 			//set the rest of them to point to the first var
@@ -182,7 +180,7 @@ public:
 string unswitchLoops_recursive(aliasVars &vars, Node *root);
 string getAttrTarget(aliasVars &vars, Node *attrExpr);
 
-size_t globalLetCount = 0;
+size_t globalLocalCount = 0;
 varNames globalVarNames;
 
 void unswitchLoops(void) {
@@ -210,7 +208,7 @@ void unswitchLoops(void) {
 				//all class vars and formals are unknown aliases, add them
 				vector<string> localVars = globalSymTable->getAllVariables();
 				for (string classVar : localVars) {
-					vars.set(classVar, "?", true);
+					vars.set(classVar, "?");
 					globalVarNames.push(classVar, classVar);
 				}
 				localVars.clear();
@@ -229,7 +227,7 @@ void unswitchLoops(void) {
 
 				globalSymTable->leaveScope();
 				//reset all the stuff for the next method
-				globalLetCount = 0;
+				globalLocalCount = 0;
 				globalVarNames.clear();
 			}
 		}
@@ -294,8 +292,8 @@ string unswitchLoops_recursive(aliasVars &vars, Node *root)
 		if (letIdExpr->type != AST_NULL) {
 			letIdRet = unswitchLoops_recursive(vars, letIdExpr);
 		}
-		string letIdFinal = letId + ".let" + to_string(globalLetCount);
-		globalLetCount++;
+		string letIdFinal = letId + ".let" + to_string(globalLocalCount);
+		globalLocalCount++;
 		vars.set(letIdFinal, letIdRet);
 		globalVarNames.push(letId, letIdFinal);
 
@@ -304,6 +302,7 @@ string unswitchLoops_recursive(aliasVars &vars, Node *root)
 		//remove val used in let
 		vars.remove(globalVarNames.get(letId));
 		globalVarNames.pop(letId);
+		//TODO: destroy the let var from the returning list of used vars
 
 		break;
 	}
@@ -325,8 +324,8 @@ string unswitchLoops_recursive(aliasVars &vars, Node *root)
 
 		//action based on caller
 		if (caller == "") {
-			//this shouldn't happen, type checking should catch it
-			cerr << "unswitchLoops_recursive(): caller = \"\"\n";
+			//some random object, not a variable
+			//TODO: do nothing?
 		}
 		else if (caller == "?") {
 			//unknown caller, invalidate all
@@ -345,13 +344,16 @@ string unswitchLoops_recursive(aliasVars &vars, Node *root)
 					vector<string> &changedVars = globalSymTable->getAllClassVariables(funcType);
 					for (string var : changedVars) {
 						//change only the class vars in the aliasVars
-						vars.set(var, "?", true);
+						vars.set(var, "?");
 					}
 				}
 			}
 		}
 		else {
 			//it's a var, invalidate it
+			//TODO: need a thing to see what the var was aliased to (like self)
+			//TODO: target of var must be set as unknown
+			//TODO: add it to aliasVars or something
 			vars.set(caller, "?");
 		}
 		return "?";
@@ -363,11 +365,58 @@ string unswitchLoops_recursive(aliasVars &vars, Node *root)
 		Node *condExpr = (Node *)ifChildren[0];
 		Node *thenExpr = (Node *)ifChildren[1];
 		Node *elseExpr = (Node *)ifChildren[2];
-		//TODO: implement
+
+		//TODO: need to record all the stuff that went on in the conditional
+		//do conditional
+		unswitchLoops_recursive(vars, condExpr);
+
+		//copy vars for then and else, do them
+		aliasVars tmpVars = vars;
+		unswitchLoops_recursive(tmpVars, thenExpr);
+		tmpVars = vars;
+		unswitchLoops_recursive(tmpVars, elseExpr);
+
+		//TODO: get what variables were assigned/used? and change vars
+
+		//TODO: add the if to the list of ifs
+
+		return "?";
 		break;
 	}
 	case AST_CASESTATEMENT:
+	{
+		auto children = root->getChildren();
+		Node *condExpr = (Node *)children[0];
+		Node *caseList = (Node *)children[1];
+		//evaluate the case conditional expr
+		string caseIdRet = unswitchLoops_recursive(vars, condExpr);
+
+		auto cases = caseList->getChildren();
+		for (auto cs: cases) {
+			auto caseKids = cs->getChildren();
+			string caseId = ((Node *)caseKids[0])->value;
+			Node *caseExpr = (Node *)caseKids[2];
+
+			//need to copy vars
+			aliasVars tmpVars = vars;
+			//get case var alt name
+			string caseIdFinal = caseId + ".case" + to_string(globalLocalCount);
+			globalLocalCount++;
+			tmpVars.set(caseIdFinal, caseIdRet);
+			globalVarNames.push(caseId, caseIdFinal);
+
+			unswitchLoops_recursive(tmpVars, caseExpr);
+
+			//remove case var from varNames
+			globalVarNames.pop(caseId);
+			//TODO: destroy the case var from the returning list of used vars
+
+			//TODO: get what variables were assigned/used? and change vars
+		}
+
+		return "?";
 		break;
+	}
 	default:
 		//recurse to all children
 		for (auto tchild : root->getChildren()) {
