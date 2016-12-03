@@ -76,5 +76,5 @@ void semant()
 	
 	//OPTIMIZATION - Loop Unswitching
 	//TODO: add conditional
-	unswitch_loops();
+	unswitchLoops();
 }

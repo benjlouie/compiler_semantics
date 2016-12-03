@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <stack>
 #include "../src/ast.h"
 #include "symbolTable.h"
 
@@ -10,4 +11,4 @@ extern SymbolTable *globalSymTable;
 //extern std::unordered_map<std::string, std::string> globalTypeList;
 
 
-void unswitch_loops(void);
+void unswitchLoops(void);

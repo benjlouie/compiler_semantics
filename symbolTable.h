@@ -114,6 +114,13 @@ public:
 
 	void goToClass(std::string className);
 
+	vector<string> getCurrentVariables(void);
+
+	vector<string> getAllVariables(void);
+
+	vector<string> getAllClassVariables(void);
+
+	vector<string> getAllClassVariables(string className);
 	/**
 	 * gets the names of all scopes in the children of cur
 	 */
