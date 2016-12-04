@@ -2,6 +2,7 @@
 
 bool ConstProp::init() 
 {
+	this->setSettings(ConstPropSettings());
 	auto rootChildren = root->getChildren();
 	for (Tree *tchild : rootChildren) {
 		Node *classNode = (Node *)tchild;
@@ -91,6 +92,8 @@ bool ConstProp::massiveSwitch(Node *expr)
 			cerr << "Constant propogation ran into a scenario where a not worked on something other than a bool. Wat." << endl;
 		}
 
+		notChild = (Node *)(expr->getChild());
+
 		if (notChild->type == AST_TRUE) {
 			expr->replaceSelf(new Node(AST_FALSE));
 		}
@@ -110,6 +113,8 @@ bool ConstProp::massiveSwitch(Node *expr)
 			cerr << "Constant propogation ran into a scenario where a tilde worked on something other than an int on line " << expr->lineNumber << ". Wat." << endl;
 		}
 
+		tildeChild = (Node *)(expr->getChild());
+
 		if (tildeChild->type == AST_INTEGERLITERAL) {
 			int val = this->getVal(tildeChild);
 			
@@ -121,6 +126,7 @@ bool ConstProp::massiveSwitch(Node *expr)
 	case AST_ISVOID: {
 		Node *isVoidChild = (Node *)(expr->getChild());
 		massiveSwitch(isVoidChild);
+		isVoidChild = (Node *)(expr->getChild());
 
 		switch (isVoidChild->type)
 		{
@@ -151,6 +157,9 @@ bool ConstProp::massiveSwitch(Node *expr)
 		Node *rightChild = (Node *)(tChildren.at(1));
 		massiveSwitch(leftChild);
 		massiveSwitch(rightChild);
+		leftChild = (Node *)(tChildren.at(0));
+		rightChild = (Node *)(tChildren.at(1));
+
 		int leftVal = -1;
 		int rightVal = -1;
 		if (leftChild->type == AST_INTEGERLITERAL && rightChild->type == AST_INTEGERLITERAL) {
@@ -196,6 +205,8 @@ bool ConstProp::massiveSwitch(Node *expr)
 		Node *rightChild = (Node *)(tChildren.at(1));
 		massiveSwitch(leftChild);
 		massiveSwitch(rightChild);
+		leftChild = (Node *)(tChildren.at(0));
+		rightChild = (Node *)(tChildren.at(1));
 
 		int leftVal = -1;
 		int rightVal = -1;
@@ -238,6 +249,9 @@ bool ConstProp::massiveSwitch(Node *expr)
 		Node *rightChild = (Node *)(tChildren.at(1));
 		massiveSwitch(leftChild);
 		massiveSwitch(rightChild);
+		leftChild = (Node *)(tChildren.at(0));
+		rightChild = (Node *)(tChildren.at(1));
+
 
 		int leftVal = -1;
 		int rightVal = -1;
@@ -282,6 +296,8 @@ bool ConstProp::massiveSwitch(Node *expr)
 		Node *rightChild = (Node *)(tChildren.at(1));
 		massiveSwitch(leftChild);
 		massiveSwitch(rightChild);
+		leftChild = (Node *)(tChildren.at(0));
+		rightChild = (Node *)(tChildren.at(1));
 
 		int leftVal = -1;
 		int rightVal = -1;
@@ -348,6 +364,9 @@ bool ConstProp::massiveSwitch(Node *expr)
 		Node *rightChild = (Node *)(tChildren.at(1));
 		massiveSwitch(leftChild);
 		massiveSwitch(rightChild);
+		leftChild = (Node *)(tChildren.at(0));
+		rightChild = (Node *)(tChildren.at(1));
+
 		//Only gonna do primitives (bool, int, string) cause I don't wanna deal with 
 		//anything else.
 		int leftType = leftChild->type;
@@ -373,9 +392,6 @@ bool ConstProp::massiveSwitch(Node *expr)
 				expr->replaceSelf(newFalseNode);
 			}
 		}
-
-		
-
 	}
 	case AST_EXPRLIST://FALL through
 	case AST_EXPRSEMILIST: { //Block statements - nothing special about em.
@@ -385,15 +401,99 @@ bool ConstProp::massiveSwitch(Node *expr)
 		}
 	}
 	case AST_DISPATCH: {
+		auto tChildren = expr->getChildren();
+		Node *leftChild = (Node *)(tChildren.at(0));
+		Node *exprList = (Node *)tChildren.at(3);
+		massiveSwitch(leftChild);
+		massiveSwitch(exprList);
+		leftChild = (Node *)(tChildren.at(0));
+		exprList = (Node *)tChildren.at(3);
 
+		this->settings.removeOthers();
 	}
 	case AST_LARROW: { //assignment
+		auto tChildren = expr->getChildren();
+		Node *id = (Node *)tChildren.at(0);
+		Node *expression = (Node *)tChildren.at(1);
+		massiveSwitch(expression);
+		expression = (Node *)tChildren.at(1);
+		if (expression->type == AST_INTEGERLITERAL || expression->type == AST_STRING || expression->type == AST_TRUE || expression->type == AST_FALSE) {
+			this->settings.addValToVar(id->value, expression->value);
+		}
+	}
+	case AST_IF: {
+		auto tChildren = expr->getChildren();
+		Node *test = (Node*)tChildren.at(0);
+		Node *trueSection = (Node *)tChildren.at(1);
+		Node *falseSection = (Node *)tChildren.at(2);
+		massiveSwitch(test);
+		test = (Node *)tChildren.at(0);
+		
+		if (test->type == AST_TRUE) {
+			massiveSwitch(trueSection);
+		}
+		else if (test->type == AST_FALSE) {
+			massiveSwitch(falseSection);
+		}
+		else {
+			ConstProp tCProp = ConstProp(this->settings);
+			ConstProp fCProp = ConstProp(this->settings);
+			tCProp.massiveSwitch(trueSection);
+			fCProp.massiveSwitch(falseSection);
+			vector<set<string>> trueChanged =  tCProp.getSettings().getChanged();
+			vector<set<string>> falseChanged = fCProp.getSettings().getChanged();
+
+			this->settings.removeChanged(trueChanged);
+			this->settings.removeChanged(falseChanged);
+		}
+	}
+	case AST_LET: {
+		auto tChildren = expr->getChildren();
+		//Let(0) -> ID_TYPE_EXPR(2) -> expression
+		Node *idExpr = (Node *)(tChildren.at(0)->getChildren().at(2));
+		massiveSwitch(idExpr);
+		idExpr = (Node *)(tChildren.at(0)->getChildren().at(2));
+		Node *idType = (Node *)(tChildren.at(0)->getChildren().at(1));
+		Node *id = (Node *)(tChildren.at(0)->getChildren().at(0));
+
+		if (idExpr->type == idType->type) {
+			this->settings.addLocal(id->value, idExpr->value);
+		}
+		else {
+			this->settings.addLocal(id->value, "");
+		}
+
+		Node *other = (Node *)tChildren.at(1);
+		massiveSwitch(other);
+		this->settings.removeVar(id->value);
+	}
+	case AST_CASE: {
+		auto tChildren = expr->getChildren();
+		Node *caseExpr = (Node *)tChildren.at(0);
+		massiveSwitch(caseExpr);
+		Node *caseList = (Node *)tChildren.at(1);
+
+		auto tCaseListChildren = caseList->getChildren();
+		vector<vector<set<string>>> toRemove = vector<vector<set<string>>>();
+		for (Tree *tCaseListChild : tCaseListChildren) {
+			Node *caseListChild = (Node *)tCaseListChild;
+			ConstProp cp = ConstProp(this->settings);
+
+			cp.massiveSwitch((Node *)caseListChild->getChildren().at(3));
+			toRemove.emplace(toRemove.end(),cp.getSettings().getChanged());
+		}
 
 	}
-	case AST_IF:
-	case AST_LET:
-	case AST_CASE:
 	case AST_WHILE: {
+		auto tChildren = expr->getChildren();
+		Node *whileTest = (Node *)tChildren.at(0);
+		massiveSwitch(whileTest);
+		whileTest = (Node *)tChildren.at(0);
+		if (whileTest->type == AST_FALSE) {
+			return;
+		}
+
+
 
 		break;
 	}
@@ -424,18 +524,23 @@ ConstProp::~ConstProp()
 int ConstProp::getVal(Node *expr) {
 	int retVal = -1;
 	try {
-		retVal = std::stoi(expr->value);
+		retVal = stoi(expr->value);
 	}
 	catch (const std::out_of_range& oor) {
 		numErrors++;
 		cerr << "An integer had a value that couldn't be read into a C++ int on line " << expr->lineNumber << ". Wat." << endl;
 	}
-	catch (const std::invalid_argument& ia) {
+	catch (const invalid_argument& ia) {
 		numErrors++;
 		cerr << "An integer had a value that couldn't be converted into a C++ int on line " << expr->lineNumber << " with value " << expr->value << ". Wat." << endl;
 	}
 
 	return retVal;
+}
+
+void ConstProp::setSettings(ConstPropSettings settings)
+{
+	this->settings = settings;
 }
 
 

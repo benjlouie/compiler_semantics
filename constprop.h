@@ -1,9 +1,11 @@
 #pragma once
 #include <iostream>
 #include <array>
-#include "../src/ast.h";
+#include "../src/ast.h"
 #include "constpropsettings.h"
 
+
+using namespace std;
 
 extern Node *root;
 extern int numErrors;
