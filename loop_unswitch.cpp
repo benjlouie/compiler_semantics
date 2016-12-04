@@ -2,19 +2,22 @@
 #include "loop_unswitch.h"
 
 struct varData {
-	bool used;
-	bool assigned;
-	bool dispatched;
-	bool alias;
-	string aliasVar;
+	bool used = false;
+	bool assigned = false;
+	bool dispatched = false;
 
-	varData() {
-		used = false;
-		assigned = false;
-		dispatched = false;
-		alias = false;
-		aliasVar = "";
+	varData &operator+=(const varData &rhs) {
+		this->used = this->used || rhs.used;
+		this->assigned = this->assigned || rhs.assigned;
+		this->dispatched = this->dispatched || rhs.dispatched;
+		return *this;
 	}
+};
+
+struct ifData {
+	Node *ifNode;
+	unordered_map<string, varData> *ifCondVarUse;
+	//TODO: do I need a copy of vars at the time of the if?
 };
 
 class varNames {
@@ -66,16 +69,62 @@ public:
 		return false;
 	}
 
-	void set(string varName, string target = "") {
-		//check if it's actually the var we want
-		//TODO: make sure it still works when removing classVar
-		/*if (variables.count(varName) > 0) {
-			if (variables[varName].classVar && classVar) {
-				//var isn't there, don't change anything
-				return;
-			}
-		}*/
+	bool isUnknown(string varName) {
+		if (!this->contains(varName)) {
+			return false; //not in vars
+		}
+		string target = variables[varName].target;
+		if (target == "") {
+			return variables[varName].unknownAlias;
+		}
+		else {
+			return variables[target].unknownAlias;
+		}
+	}
 
+	vector<string> getAliases(string varName) {
+		if (!this->contains(varName)) {
+			return{}; //not in vars
+		}
+
+		vector<string> retVars;
+		string target = variables[varName].target;
+		if (target == "") {
+			//points too self
+			for (auto vars : variables[varName].aliases) {
+				retVars.push_back(vars.first);
+			}
+			retVars.push_back(varName);
+		}
+		else {
+			for (auto vars : variables[target].aliases) {
+				retVars.push_back(vars.first);
+			}
+			retVars.push_back(target);
+		}
+
+		return retVars;
+	}
+
+	void setTargetUnknown(string varName) {
+		if (!this->contains(varName)) {
+			//doesn't exist, error
+			cerr << "aliasVar.setTargetUnknown(): variable \"" + varName + "\"doesn't exist\n";
+			return;
+		}
+		//TODO: if the target is already unknownVariable, do all the class vars need to be changed to unknown too?
+
+		string target = variables[varName].target;
+		if (target == "") {
+			//has no target, is itself
+			variables[varName].unknownAlias = true;
+		}
+		else {
+			variables[target].unknownAlias = true;
+		}
+	}
+
+	void set(string varName, string target = "") {
 		//create it if not already made
 		variables[varName];
 		//keep track of prev unknownAlias
@@ -177,8 +226,10 @@ public:
 	}
 };
 
-string unswitchLoops_recursive(aliasVars &vars, Node *root);
-string getAttrTarget(aliasVars &vars, Node *attrExpr);
+string unswitchLoops_recursive(aliasVars &vars, unordered_map<string, varData> &varUse, vector<ifData> &ifStatements, Node *root);
+void setVarsFromTemporaries(aliasVars &vars, unordered_map<string, varData> &varUse, unordered_map<string, varData> &tmpVarUse);
+bool attemptToUnswitch(aliasVars &vars, unordered_map<string, varData> &loopVarUse, vector<ifData> &ifStatements, Node *loopNode);
+bool unswitchVarsValid(aliasVars &vars, unordered_map<string, varData> &combinedVarUse, unordered_map<string, varData> &ifVarUse);
 
 size_t globalLocalCount = 0;
 varNames globalVarNames;
@@ -223,7 +274,9 @@ void unswitchLoops(void) {
 				localVars.clear();
 
 				//recurse, build vars down, build the if list and stuff from the bottom
-				unswitchLoops_recursive(vars, methodExpr);
+				unordered_map<string, varData> varUse;
+				vector<ifData> ifStatements;
+				unswitchLoops_recursive(vars, varUse, ifStatements, methodExpr);
 
 				globalSymTable->leaveScope();
 				//reset all the stuff for the next method
@@ -235,37 +288,69 @@ void unswitchLoops(void) {
 }
 
 //returns the var the expression came out to
-string unswitchLoops_recursive(aliasVars &vars, Node *root)
+string unswitchLoops_recursive(aliasVars &vars, unordered_map<string, varData> &varUse, vector<ifData> &ifStatements, Node *root)
 {
 	switch (root->type)
 	{
 	case AST_IDENTIFIER:
-		//TODO: add that it was used for when it goes up
+		//mark var as used when going up
+		varUse[globalVarNames.get(root->value)].used = true;
 		return globalVarNames.get(root->value);
 		break;
 	case AST_LARROW:
 	{
-		//TODO: add that it was assigned for when it goes up
 		auto assignChildren = root->getChildren();
 		string varName = ((Node *)assignChildren[0])->value;
 		Node *rightExpr = (Node *)assignChildren[1];
 
 		varName = globalVarNames.get(varName);
-		vars.set(varName, unswitchLoops_recursive(vars, rightExpr));
+		vars.set(varName, unswitchLoops_recursive(vars, varUse, ifStatements, rightExpr));
+
+		//mark that the var was assigned when it goes up
+		varUse[varName].assigned = true;
 
 		return varName;
 		break;
 	}
 	case AST_WHILE:
-		//TODO: special stuff, put into own function
+	{
+		auto whileChildren = root->getChildren();
+		Node *condExpr = (Node *)whileChildren[0];
+		Node *loopExpr = (Node *)whileChildren[1];
+
+		//go through cond (will always execute)
+		unordered_map<string, varData> tmpCondVarUse;
+		unswitchLoops_recursive(vars, tmpCondVarUse, ifStatements, condExpr);
+
+		//make temporaries for loop body (may not be executed)
+		unordered_map<string, varData> tmpVarUse;
+		aliasVars tmpVars = vars;
+		unswitchLoops_recursive(tmpVars, tmpVarUse, ifStatements, loopExpr);
+
+		//combine both tmporary varUses while attempting to unswitch
+		for (auto use : tmpCondVarUse) {
+			tmpVarUse[use.first] += use.second;
+		}
+		//special stuff for determining if it should be unswitched, put into own function
+		bool success = attemptToUnswitch(vars, tmpVarUse, ifStatements, root);
+		if (success) {
+			//remove all ifStatements from the list, so it doesn't affect upward loops
+			//TODO: should be able to add the unswitched if with updated usages and ptr
+			ifStatements.clear();
+		}
+
+		//add tmpCondVarUse and tmpVarUse to varUse (order is important)
+		setVarsFromTemporaries(vars, varUse, tmpCondVarUse);
+		setVarsFromTemporaries(vars, varUse, tmpVarUse);
 
 		break;
+	}
 	case AST_EXPRLIST:
 	{
 		auto children = root->getChildren();
 		size_t i = 0;
 		for (; i < children.size() - 1; i++) {
-			unswitchLoops_recursive(vars, (Node *)children[i]);
+			unswitchLoops_recursive(vars, varUse, ifStatements, (Node *)children[i]);
 		}
 		return "";
 		break;
@@ -275,9 +360,9 @@ string unswitchLoops_recursive(aliasVars &vars, Node *root)
 		auto children = root->getChildren();
 		size_t i = 0;
 		for (; i < children.size() - 1; i++) {
-			unswitchLoops_recursive(vars, (Node *)children[i]);
+			unswitchLoops_recursive(vars, varUse, ifStatements, (Node *)children[i]);
 		}
-		return unswitchLoops_recursive(vars, (Node *)children[i]);
+		return unswitchLoops_recursive(vars, varUse, ifStatements, (Node *)children[i]);
 		break;
 	}
 	case AST_LET:
@@ -288,21 +373,22 @@ string unswitchLoops_recursive(aliasVars &vars, Node *root)
 		Node *letIdExpr = (Node *)idTypeExpr->getChildren()[2];
 		Node *letExpr = (Node *)letChildren[1];
 
-		string letIdRet = ""; //only use if there is an expr
+		string letIdRet = "";
 		if (letIdExpr->type != AST_NULL) {
-			letIdRet = unswitchLoops_recursive(vars, letIdExpr);
+			letIdRet = unswitchLoops_recursive(vars, varUse, ifStatements, letIdExpr);
 		}
 		string letIdFinal = letId + ".let" + to_string(globalLocalCount);
 		globalLocalCount++;
 		vars.set(letIdFinal, letIdRet);
 		globalVarNames.push(letId, letIdFinal);
 
-		unswitchLoops_recursive(vars, letExpr);
+		unswitchLoops_recursive(vars, varUse, ifStatements, letExpr);
 
 		//remove val used in let
 		vars.remove(globalVarNames.get(letId));
 		globalVarNames.pop(letId);
 		//TODO: destroy the let var from the returning list of used vars
+		//do I need to? shouldn't affect anything...
 
 		break;
 	}
@@ -314,12 +400,12 @@ string unswitchLoops_recursive(aliasVars &vars, Node *root)
 		Node *argExprs = (Node *)dispatchChildren[3];
 
 		//go through argument expressions
-		unswitchLoops_recursive(vars, argExprs);
+		unswitchLoops_recursive(vars, varUse, ifStatements, argExprs);
 
 		//go through caller expression
 		string caller = "self";
 		if (callerExpr->type != AST_NULL) {
-			caller = unswitchLoops_recursive(vars, callerExpr);
+			caller = unswitchLoops_recursive(vars, varUse, ifStatements, callerExpr);
 		}
 
 		//action based on caller
@@ -348,13 +434,18 @@ string unswitchLoops_recursive(aliasVars &vars, Node *root)
 					}
 				}
 			}
+			varUse["self"].dispatched = true;
 		}
 		else {
 			//it's a var, invalidate it
 			//TODO: need a thing to see what the var was aliased to (like self)
-			//TODO: target of var must be set as unknown
-			//TODO: add it to aliasVars or something
+			//TODO: if target was previously unknown, do all the class vars need to be changed?
+
+			//target of var must be set as unknown
+			vars.setTargetUnknown(caller);
+
 			vars.set(caller, "?");
+			varUse[caller].dispatched = true;
 		}
 		return "?";
 		break;
@@ -366,19 +457,24 @@ string unswitchLoops_recursive(aliasVars &vars, Node *root)
 		Node *thenExpr = (Node *)ifChildren[1];
 		Node *elseExpr = (Node *)ifChildren[2];
 
-		//TODO: need to record all the stuff that went on in the conditional
-		//do conditional
-		unswitchLoops_recursive(vars, condExpr);
+		//do conditional, record everything that happened in it separately
+		unordered_map<string, varData> *ifCondVarUse = new unordered_map<string, varData>();
+		unswitchLoops_recursive(vars, *ifCondVarUse, ifStatements, condExpr);
+		//TODO: need to record the currect vars in return of if statements?
 
 		//copy vars for then and else, do them
+		unordered_map<string, varData> tmpVarUse;
 		aliasVars tmpVars = vars;
-		unswitchLoops_recursive(tmpVars, thenExpr);
+		unswitchLoops_recursive(tmpVars, tmpVarUse, ifStatements, thenExpr);
 		tmpVars = vars;
-		unswitchLoops_recursive(tmpVars, elseExpr);
+		unswitchLoops_recursive(tmpVars, tmpVarUse, ifStatements, elseExpr);
 
-		//TODO: get what variables were assigned/used? and change vars
+		//get what variables were assigned/dispatched and change vars
+		setVarsFromTemporaries(vars, varUse, tmpVarUse);
 
-		//TODO: add the if to the list of ifs
+		//add the if to the list of ifs
+		ifData ifInfo{ root, ifCondVarUse };
+		ifStatements.push_back(ifInfo);
 
 		return "?";
 		break;
@@ -389,7 +485,10 @@ string unswitchLoops_recursive(aliasVars &vars, Node *root)
 		Node *condExpr = (Node *)children[0];
 		Node *caseList = (Node *)children[1];
 		//evaluate the case conditional expr
-		string caseIdRet = unswitchLoops_recursive(vars, condExpr);
+		string caseIdRet = unswitchLoops_recursive(vars, varUse, ifStatements, condExpr);
+
+		//to keep track of all the things changed during the cases
+		unordered_map<string, varData> tmpVarUse;
 
 		auto cases = caseList->getChildren();
 		for (auto cs: cases) {
@@ -405,14 +504,17 @@ string unswitchLoops_recursive(aliasVars &vars, Node *root)
 			tmpVars.set(caseIdFinal, caseIdRet);
 			globalVarNames.push(caseId, caseIdFinal);
 
-			unswitchLoops_recursive(tmpVars, caseExpr);
+			//need tmp varUse so I can see what needs to be invalidated
+			unswitchLoops_recursive(tmpVars, tmpVarUse, ifStatements, caseExpr);
 
 			//remove case var from varNames
 			globalVarNames.pop(caseId);
 			//TODO: destroy the case var from the returning list of used vars
-
-			//TODO: get what variables were assigned/used? and change vars
+			//TODO: do we need to?
 		}
+
+		//get what variables were assigned/dispatched in all cases and change vars
+		setVarsFromTemporaries(vars, varUse, tmpVarUse);
 
 		return "?";
 		break;
@@ -420,10 +522,122 @@ string unswitchLoops_recursive(aliasVars &vars, Node *root)
 	default:
 		//recurse to all children
 		for (auto tchild : root->getChildren()) {
-			unswitchLoops_recursive(vars, (Node *)tchild);
+			unswitchLoops_recursive(vars, varUse, ifStatements, (Node *)tchild);
 		}
 		return "";
 		break;
 	}
 	return "?";
+}
+
+void setVarsFromTemporaries(aliasVars &vars, unordered_map<string, varData> &varUse, unordered_map<string, varData> &tmpVarUse)
+{
+	//get what variables were assigned/dispatched and change vars
+	for (auto varUsage : tmpVarUse) {
+		string varName = varUsage.first;
+		varData &data = varUsage.second;
+		if (vars.contains(varName)) { //test incase it was a local var
+			if (data.dispatched) {
+				//set target to unknownAlias (like in dispatch) so all aliases are unknown
+				vars.setTargetUnknown(varName);
+			}
+			//order is important here
+			if (data.assigned) {
+				vars.set(varName, "?"); //possibly assigned, no idea what it is now
+			}
+		}
+		//add variable usages into the regular varUse
+		varUse[varName] += data;
+	}
+}
+
+bool attemptToUnswitch(aliasVars &vars, unordered_map<string, varData> &loopVarUse, vector<ifData> &ifStatements, Node *loopNode)
+{
+	//loop through all if statements and use the first one
+	//start at top (likely most used if)(end of vector)
+	size_t len = ifStatements.size();
+	for (size_t i = 0, cur = len - 1; i < len; i++, cur--) {
+		ifData ifStatement = ifStatements[cur];
+
+		//combine all var use except cur if into one varUse
+		unordered_map<string, varData> combinedVarUse;
+		for (size_t ifInd = 0; ifInd < len; ifInd++) {
+			if (ifInd != cur) { //all except cur
+				unordered_map<string, varData> &tmpVarUse = *ifStatements[ifInd].ifCondVarUse;
+				for (auto use : tmpVarUse) {
+					combinedVarUse[use.first] += use.second;
+				}
+			}
+		}
+		//add in loop varUse
+		for (auto use : loopVarUse) {
+			combinedVarUse[use.first] += use.second;
+		}
+
+		//check varUse in the if conditional against all other values used (including the ones in the other if conditionals)
+		if (unswitchVarsValid(vars, combinedVarUse, *ifStatement.ifCondVarUse)) {
+			//can be unswitched! WOOHOO!
+			//TODO: do the unswitching
+			cout << "We can unswitch it I think...\n";
+			return true;
+		}
+	}
+	return false;
+}
+
+bool unswitchVarsValid(aliasVars &vars, unordered_map<string, varData> &combinedVarUse, unordered_map<string, varData> &ifVarUse)
+{
+	for (auto var : ifVarUse) {
+		string varName = var.first;
+		varData data = var.second;
+
+		bool used = false;
+		bool assigned = false;
+		bool dispatched = false;
+
+		//get what was done to the aliases
+		vector<string> aliases = vars.getAliases(varName);
+		for (string alias : aliases) {
+			if (combinedVarUse.count(alias) > 0) {
+				varData aliasData = combinedVarUse[alias];
+				used = used || aliasData.used;
+				assigned = assigned || aliasData.assigned;
+				dispatched = dispatched || aliasData.dispatched;
+			}
+		}
+
+		if (data.used) {
+			//check that none of its aliases were assigned/dispatched
+			if (assigned || dispatched) {
+				return false;
+			}
+		}
+		if (data.assigned) {
+			//TODO: check this one
+			//check that none of its aliases were used
+			if (used) {
+				return false;
+			}
+		}
+		if (data.dispatched) {
+			//check that none of its aliases were used/assigned/dispatched
+			if (used || assigned || dispatched) {
+				return false;
+			}
+		}
+
+		//check that no dispatched vars are unknown aliases
+		for (auto var : combinedVarUse) {
+			if (var.second.dispatched == false) {
+				continue;
+			}
+			if (vars.contains(var.first)) {
+				if (vars.isUnknown(var.first)) {
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
 }
