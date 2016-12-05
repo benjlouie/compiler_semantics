@@ -426,8 +426,15 @@ bool ConstProp::massiveSwitch(Node *expr)
 		Node *expression = (Node *)tChildren.at(1);
 		massiveSwitch(expression);
 		expression = (Node *)tChildren.at(1);
-		if (expression->type == AST_INTEGERLITERAL || expression->type == AST_STRING || expression->type == AST_TRUE || expression->type == AST_FALSE) {
-			this->settings.addValToVar(id->value, expression->value);
+		//If not int, string, or bool, don't do anything.
+		if (expression->type == AST_INTEGERLITERAL) {
+			this->settings.addValToVar(id->value, "Int", expression->value);
+		}
+		else if (expression->type == AST_STRING) {
+			this->settings.addValToVar(id->value, "String", expression->value);
+		}
+		else if (expression->type == AST_TRUE || expression->type == AST_FALSE) {
+			this->settings.addValToVar(id->value, "Bool", expression->value);
 		}
 	}
 	case AST_IF: {
@@ -445,12 +452,12 @@ bool ConstProp::massiveSwitch(Node *expr)
 			massiveSwitch(falseSection);
 		}
 		else {
-			ConstProp tCProp = ConstProp(this->settings);
-			ConstProp fCProp = ConstProp(this->settings);
-			tCProp.massiveSwitch(trueSection);
-			fCProp.massiveSwitch(falseSection);
-			vector<set<string>> trueChanged =  tCProp.getSettings().getChanged();
-			vector<set<string>> falseChanged = fCProp.getSettings().getChanged();
+			ConstProp *tCProp = new ConstProp((this->settings));
+			ConstProp *fCProp = new ConstProp((this->settings));
+			tCProp->massiveSwitch(trueSection);
+			fCProp->massiveSwitch(falseSection);
+			vector<set<string>> trueChanged =  tCProp->getSettings().getChanged();
+			vector<set<string>> falseChanged = fCProp->getSettings().getChanged();
 
 			this->settings.removeChanged(trueChanged);
 			this->settings.removeChanged(falseChanged);
@@ -486,10 +493,10 @@ bool ConstProp::massiveSwitch(Node *expr)
 		vector<vector<set<string>>> toRemove = vector<vector<set<string>>>();
 		for (Tree *tCaseListChild : tCaseListChildren) {
 			Node *caseListChild = (Node *)tCaseListChild;
-			ConstProp cp = ConstProp(this->settings);
+			ConstProp *cp = new ConstProp(this->settings);
 
-			cp.massiveSwitch((Node *)caseListChild->getChildren().at(3));
-toRemove.emplace(toRemove.end(), cp.getSettings().getChanged());
+			cp->massiveSwitch((Node *)caseListChild->getChildren().at(3));
+toRemove.emplace(toRemove.end(), cp->getSettings().getChanged());
 		}
 
 	}
@@ -552,6 +559,10 @@ toRemove.emplace(toRemove.end(), cp.getSettings().getChanged());
 	return false;
 }
 
+ConstProp::ConstProp(ConstPropSettings settings) {
+	this->setSettings(settings);
+}
+
 ConstProp::ConstProp()
 {
 }
@@ -583,6 +594,10 @@ void ConstProp::setSettings(ConstPropSettings settings)
 	this->settings = settings;
 }
 
+ConstPropSettings ConstProp::getSettings() {
+	return this->settings;
+}
+
 //One of the UGLY issues in here
 set<string> ConstProp::getAssigned(Node *expr)
 {
@@ -606,16 +621,22 @@ set<string> ConstProp::getAssigned(Node *expr)
 			set<string> toAdd = getAssigned((Node *)childChildren.at(1));
 
 			//add all changed and the number of times.
-			ret.emplace(toAdd);
+			ret.insert(toAdd.begin(),toAdd.end());
 		}
 		case AST_DISPATCH: {
 			Node *firstExpr = (Node *)childChildren.at(0);
 			Node *exprList = (Node *)childChildren.at(3);
-			ret.emplace(getAssigned(firstExpr));
-			ret.emplace(getAssigned(exprList));
+			set<string> firstAssigned = getAssigned(firstExpr);
+			set<string> exprListAssigned = getAssigned(exprList);
+			ret.insert(firstAssigned.begin(),firstAssigned.end());
+			ret.insert(exprListAssigned.begin(), exprListAssigned.end());
 			//Always assume all class vars changed on dispatch.
-			for (map<string, pair<string,string>>::iterator it = this->settings.getOtherMap().begin(); it != this->settings.getOtherMap().end(); it++) {
-				ret.emplace(it->first);
+			map<string, pair<string, string>> otherMap = this->settings.getOtherMap();
+			map<string, pair<string, string>>::iterator it = otherMap.begin();
+			map<string, pair<string, string>>::iterator endIt = otherMap.end();
+			for (; it != endIt; it++) {
+				string what = it->first;
+				ret.emplace(what);
 			}
 		}
 		case AST_LET: {
@@ -623,18 +644,22 @@ set<string> ConstProp::getAssigned(Node *expr)
 			Node *secondExpr = (Node *)childChildren.at(1);
 
 			Node *idTypeChild = (Node *)idTypeExpr->getChildren().at(2);
+			set<string> idTypeChildAssigned = getAssigned(idTypeChild);
 
-			ret.emplace(getAssigned(idTypeChild));
+			ret.insert(idTypeChildAssigned.begin(), idTypeChildAssigned.end());
+
 			set<string> changed = getAssigned(secondExpr);
 			if (changed.count(((Node *)idTypeChild->getChildren().at(0))->value)) {
 				changed.erase(((Node *)idTypeChild->getChildren().at(0))->value);
 			}
 
-			ret.emplace(changed);
+			ret.insert(changed.begin(),changed.end());
 		}
 		default: {
 			cout << "A node of type " << expr->type << " was found in getAssignCount" << endl;
-			ret.emplace(getAssigned(child));
+			set<string> assigned = getAssigned(child);
+			ret.insert(assigned.begin(), assigned.end());
+			
 		}
 
 		}

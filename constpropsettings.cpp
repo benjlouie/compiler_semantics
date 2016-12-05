@@ -65,8 +65,11 @@ void ConstPropSettings::addLocal(string name, string type, string value = "")
 		localVarMap.find(name)->second.second.push("");
 	}
 	else { //not in locals yet.	
-		stack<string> tmp = stack<string>();
-		tmp.push(value);
+		pair<string,stack<string>> tmp = pair<string,stack<string>>();
+		tmp.second = stack<string>();
+
+		tmp.first = type;
+		tmp.second.push(value);
 
 		localVarMap.emplace(name, tmp);
 	}
@@ -78,7 +81,10 @@ void ConstPropSettings::addFormal(string name, string type)
 		formalVarMap.find(name)->second.second = "";
 	}
 	else { //not in locals yet.		
-		formalVarMap.emplace(name, "");
+		pair<string, string> tmp = pair<string, string>();
+		tmp.first = type;
+		tmp.second = "";
+		formalVarMap.emplace(name, tmp);
 	}
 }
 
@@ -95,7 +101,7 @@ void ConstPropSettings::addOther(string name, string type, string value)
 	}
 }
 
-void ConstPropSettings::addValToVar(string name, string value)
+void ConstPropSettings::addValToVar(string name, string type, string value)
 {
 	if (localVarMap.count(name) == 1) {
 		this->changed.at(0).emplace(name);
@@ -112,7 +118,10 @@ void ConstPropSettings::addValToVar(string name, string value)
 	}
 	else {
 		this->changed.at(2).emplace(name);
-		otherVarMap.emplace(name, value);
+		pair<string, string> tmp = pair<string, string>();
+		tmp.first = type;
+		tmp.second = value;
+		otherVarMap.emplace(name, tmp);
 	}
 }
 
@@ -125,6 +134,7 @@ vector<set<string>> ConstPropSettings::getChanged()
 {
 	return this->changed;
 }
+
 
 map<string, pair<string, stack<string>>> ConstPropSettings::getLocalMap()
 {

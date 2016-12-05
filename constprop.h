@@ -1,8 +1,8 @@
 #pragma once
 #include <iostream>
 #include <array>
-#include "../src/ast.h"
 #include "constpropsettings.h"
+#include"semant.h"
 
 
 using namespace std;

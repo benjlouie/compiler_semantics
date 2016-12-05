@@ -17,7 +17,7 @@ public:
 	void addLocal(string name, string type, string value);
 	void addFormal(string name, string type);
 	void addOther(string name, string type, string value);
-	void addValToVar(string name, string value);
+	void addValToVar(string name, string type,string value);
 	void removeOthers();
 	void removeChanged(vector<set<string>> changed);
 	void removeVar(string name);
