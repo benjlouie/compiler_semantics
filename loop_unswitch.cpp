@@ -230,6 +230,7 @@ string unswitchLoops_recursive(aliasVars &vars, unordered_map<string, varData> &
 void setVarsFromTemporaries(aliasVars &vars, unordered_map<string, varData> &varUse, unordered_map<string, varData> &tmpVarUse);
 bool attemptToUnswitch(aliasVars &vars, unordered_map<string, varData> &loopVarUse, vector<ifData> &ifStatements, Node *loopNode);
 bool unswitchVarsValid(aliasVars &vars, unordered_map<string, varData> &combinedVarUse, unordered_map<string, varData> &ifVarUse);
+void AstUnswitch(Node *whileNode, Node *ifNode);
 
 size_t globalLocalCount = 0;
 varNames globalVarNames;
@@ -577,8 +578,8 @@ bool attemptToUnswitch(aliasVars &vars, unordered_map<string, varData> &loopVarU
 		//check varUse in the if conditional against all other values used (including the ones in the other if conditionals)
 		if (unswitchVarsValid(vars, combinedVarUse, *ifStatement.ifCondVarUse)) {
 			//can be unswitched! WOOHOO!
-			//TODO: do the unswitching
-			cout << "We can unswitch it I think...\n";
+			//do the unswitching
+			AstUnswitch(loopNode, ifStatement.ifNode);
 			return true;
 		}
 	}
@@ -640,4 +641,35 @@ bool unswitchVarsValid(aliasVars &vars, unordered_map<string, varData> &combined
 	}
 
 	return true;
+}
+
+void AstUnswitch(Node *whileNode, Node *ifNode)
+{
+	//get thenExpr and elseExpr from the if
+	auto ifKids = ifNode->getChildren();
+	Node *thenExpr = (Node *)ifKids[1];
+	Node *elseExpr = (Node *)ifKids[2];
+
+	// keep track of if expr
+
+	//replace ifExpr with thenExpr
+	ifNode->replaceSelf(thenExpr);
+
+	//get path from while to ifNode (now thenExpr)
+	vector<size_t> path = whileNode->getPath(thenExpr);
+
+	//keep track of while expr
+	//copy it and its subtree
+	Node *whileCopy = whileNode->deepCopy();
+
+	//replace copy's thenExpr with the elseExpre
+	whileCopy->replaceDescendant(path, elseExpr);
+
+	//replace while expr with the if
+	//put while exprs as then and else espressions
+	whileNode->replaceSelf(ifNode);
+
+	//set the ifNodes's then to orig loop and else to copy loop
+	ifNode->setChild(1, whileNode);
+	ifNode->setChild(2, whileCopy);
 }
