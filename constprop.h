@@ -26,4 +26,5 @@ public:
 private:
 	ConstPropSettings settings;
 	int getVal(Node *);
+	set<string> getAssigned(Node *expr);
 };

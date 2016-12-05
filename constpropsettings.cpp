@@ -4,9 +4,9 @@
 
 ConstPropSettings::ConstPropSettings()
 {
-	otherVarMap = map<string,string>();
-	formalVarMap = map<string, string>();
-	localVarMap = map<string, stack<string>>();
+	otherVarMap = map<string, pair<string, string>>();
+	formalVarMap = map<string, pair<string, string>>();
+	localVarMap = map<string, pair<string, stack<string>>>();
 	this->changed = vector<set<string>>();
 	changed.emplace(changed.end(), set<string>());
 	changed.emplace(changed.end(), set<string>());
@@ -33,21 +33,36 @@ ConstPropSettings::ConstPropSettings(ConstPropSettings &toTakeIn)
 string ConstPropSettings::getVal(string name) {
 	string ret = "";
 	if (localVarMap.count(name)) {
-		ret = localVarMap.find(name)->second.top();
+		ret = localVarMap.find(name)->second.second.top();
 	}
 	else if (formalVarMap.count(name)) {
-		ret = formalVarMap.find(name)->second;
+		ret = formalVarMap.find(name)->second.second;
 	}
 	else if(otherVarMap.count(name)) {
-		ret = otherVarMap.find(name)->second;
+		ret = otherVarMap.find(name)->second.second;
 	}
 	return ret;
 }
 
-void ConstPropSettings::addLocal(string name, string value = "")
+string ConstPropSettings::getType(string name)
+{
+	string ret = "";
+	if (localVarMap.count(name)) {
+		ret = localVarMap.find(name)->second.first;
+	}
+	else if (formalVarMap.count(name)) {
+		ret = formalVarMap.find(name)->second.first;
+	}
+	else if (otherVarMap.count(name)) {
+		ret = otherVarMap.find(name)->second.first;
+	}
+	return ret;
+}
+
+void ConstPropSettings::addLocal(string name, string type, string value = "")
 {
 	if (localVarMap.count(name)) {
-		localVarMap.find(name)->second.push("");
+		localVarMap.find(name)->second.second.push("");
 	}
 	else { //not in locals yet.	
 		stack<string> tmp = stack<string>();
@@ -57,23 +72,26 @@ void ConstPropSettings::addLocal(string name, string value = "")
 	}
 }
 
-void ConstPropSettings::addFormal(string name) 
+void ConstPropSettings::addFormal(string name, string type) 
 {
 	if (formalVarMap.count(name)) {
-		formalVarMap.find(name)->second = "";
+		formalVarMap.find(name)->second.second = "";
 	}
 	else { //not in locals yet.		
 		formalVarMap.emplace(name, "");
 	}
 }
 
-void ConstPropSettings::addOther(string name, string value)
+void ConstPropSettings::addOther(string name, string type, string value)
 {
 	if (otherVarMap.count(name) == 1) {
-		otherVarMap.find(name)->second = value;
+		otherVarMap.find(name)->second.second = value;
 	}
 	else { //not in locals yet.		
-		formalVarMap.emplace(name, value);
+		pair<string, string> sec = pair<string, string>();
+		sec.first = type;
+		sec.second = value;
+		formalVarMap.emplace(name, sec);
 	}
 }
 
@@ -81,16 +99,16 @@ void ConstPropSettings::addValToVar(string name, string value)
 {
 	if (localVarMap.count(name) == 1) {
 		this->changed.at(0).emplace(name);
-		this->localVarMap.find(name)->second.pop();
-		this->localVarMap.find(name)->second.push(value);
+		this->localVarMap.find(name)->second.second.pop();
+		this->localVarMap.find(name)->second.second.push(value);
 	}
 	else if (formalVarMap.count(name) == 1) {
 		this->changed.at(1).emplace(name);
-		formalVarMap.find(name)->second = value;
+		formalVarMap.find(name)->second.second = value;
 	}
 	else if (otherVarMap.count(name) == 1) {
 		this->changed.at(2).emplace(name);
-		otherVarMap.find(name)->second = value;
+		otherVarMap.find(name)->second.second = value;
 	}
 	else {
 		this->changed.at(2).emplace(name);
@@ -108,17 +126,17 @@ vector<set<string>> ConstPropSettings::getChanged()
 	return this->changed;
 }
 
-map<string, stack<string>> ConstPropSettings::getLocalMap()
+map<string, pair<string, stack<string>>> ConstPropSettings::getLocalMap()
 {
 	return this->localVarMap;
 }
 
-map<string, string> ConstPropSettings::getFormalMap()
+map<string, pair<string, string>> ConstPropSettings::getFormalMap()
 {
 	return this->formalVarMap;
 }
 
-map<string, string> ConstPropSettings::getOtherMap()
+map<string, pair<string, string>> ConstPropSettings::getOtherMap()
 {
 	return this->otherVarMap;
 }
@@ -127,8 +145,8 @@ void ConstPropSettings::removeVar(string name)
 {
 	if (localVarMap.count(name)) {
 		this->changed.at(0).emplace(name);
-		localVarMap.find(name)->second.pop();
-		if (localVarMap.find(name)->second.empty()) {
+		localVarMap.find(name)->second.second.pop();
+		if (localVarMap.find(name)->second.second.empty()) {
 			localVarMap.erase(name);
 		}
 	}
@@ -151,23 +169,25 @@ void ConstPropSettings::removeChanged(vector<set<string>> changed)
 
 	for (string s : localChanged) {
 		if (this->localVarMap.count(s)) {
+			//make sure we count it as changed
 			this->changed.at(0).emplace(s);
-			this->localVarMap.at(s).pop();
-			this->localVarMap.at(s).push("");
+			//put the value to empty string, i.e. no value
+			this->localVarMap.at(s).second.pop();
+			this->localVarMap.at(s).second.push("");
 		}
 	} 
 
 	for (string s : formalChanged) {
 		if (this->formalVarMap.count(s)) {
 			this->changed.at(1).emplace(s);
-			this->formalVarMap.at(s).assign("");
+			this->formalVarMap.at(s).second.assign("");
 		}
 	}
 
 	for (string s : otherChanged) {
 		if (this->otherVarMap.count(s)) {
 			this->changed.at(2).emplace(s);
-			this->otherVarMap.at(s).assign("");
+			this->otherVarMap.at(s).second.assign("");
 		}
 	}
 
