@@ -263,6 +263,7 @@ void unswitchLoops(void) {
 					vars.set(classVar, "?");
 					globalVarNames.push(classVar, classVar);
 				}
+				vars.set("self", ""); //self is always known
 				localVars.clear();
 				//get formals, add them to vars
 				globalSymTable->enterScope(methName);
@@ -350,7 +351,7 @@ string unswitchLoops_recursive(aliasVars &vars, unordered_map<string, varData> &
 	{
 		auto children = root->getChildren();
 		size_t i = 0;
-		for (; i < children.size() - 1; i++) {
+		for (; i < children.size(); i++) {
 			unswitchLoops_recursive(vars, varUse, ifStatements, (Node *)children[i]);
 		}
 		return "";
@@ -419,22 +420,36 @@ string unswitchLoops_recursive(aliasVars &vars, unordered_map<string, varData> &
 			vars.setAll("?");
 		}
 		else if (caller == "self") {
+			string currentClass = globalSymTable->getCurrentClass();
+			string funcType;
 			if (funcClass->type == AST_NULL) {
-				//invalidate all
-				vars.setAll("?");
+				funcType = currentClass;
 			}
 			else {
-				string funcType = funcClass->value;
-				//only invalidate the ones from that class up
-				if (globalSymTable->isSubClass(globalSymTable->getCurrentClass(), funcType)) {
-					//update the vars if they are 
-					vector<string> &changedVars = globalSymTable->getAllClassVariables(funcType);
-					for (string var : changedVars) {
-						//change only the class vars in the aliasVars
+				funcType = funcClass->value;
+			}
+
+			//only invalidate the ones from that class up (if part of current class tree)
+			bool sameClassTree = false;
+			if (globalSymTable->isSubClass(funcType, currentClass)) {
+				funcType = currentClass;
+				sameClassTree = true;
+			}
+			if (globalSymTable->isSubClass(currentClass, funcType)) {
+				sameClassTree = true;
+			}
+
+			if (sameClassTree) {
+				//update the vars if they are 
+				vector<string> &changedVars = globalSymTable->getAllClassVariables(funcType);
+				for (string var : changedVars) {
+					//change only the class vars of funcType and up
+					if (var != "self") { //self is always known
 						vars.set(var, "?");
 					}
 				}
 			}
+
 			varUse["self"].dispatched = true;
 		}
 		else {
