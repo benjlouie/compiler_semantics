@@ -389,8 +389,15 @@ string unswitchLoops_recursive(aliasVars &vars, unordered_map<string, varData> &
 		//remove val used in let
 		vars.remove(globalVarNames.get(letId));
 		globalVarNames.pop(letId);
-		//TODO: destroy the let var from the returning list of used vars
-		//do I need to? shouldn't affect anything...
+		//destroy the let var from any if's that use it
+
+		for (size_t i = 0; i < ifStatements.size(); i++) {
+			if (ifStatements[i].ifCondVarUse->count(letIdFinal) > 0) {
+				auto it = ifStatements.begin();
+				it += i;
+				ifStatements.erase(it);
+			}
+		}
 
 		break;
 	}
