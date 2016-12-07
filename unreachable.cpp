@@ -1,0 +1,158 @@
+#include "unreachable.h"
+
+using namespace std;
+
+unordered_map<string, Node *> name2node;
+queue<Node *> q;
+
+void buildMap();
+void search(Node *);
+void doClass(Node *cls);
+void doMethod(Node *method);
+void doIf(Node *ifNode);
+void doLoop(Node *loopNode);
+void doCase(Node *caseNode);
+void doOther(Node *node);
+void remove();
+
+void eliminateUnreachable() {
+	buildMap();
+	q.push(name2node["Main"]); //know this exists because we've passed semantic analysis
+	q.push(name2node["Main.main"]);
+	while (q.size() != 0) {
+		search(q.front());
+		q.pop();
+	}
+	remove();
+	
+}
+
+void buildMap() {
+	/*map all classes to Nodes */
+	for (auto tChld : root->getChildren()) {
+		Node *cls = (Node *)tChld;
+		string name = ((Node *)(cls->getChildren()[0]))->value;
+		name2node[name] = cls;
+
+		/*map all functions in class to nodes*/
+		Node *featureSet = (Node *)cls->getChildren()[2];
+		for (auto tChld2 : featureSet->getChildren()) {
+			Node *feature = (Node *)tChld2;
+			if (feature->type == AST_FEATURE_METHOD) {
+				string method = ((Node *)feature->getChildren()[0])->value;
+				name2node[name + "." + method] = feature;
+			}
+		}
+	}
+}
+
+/* Calls appropriate function for node type
+*  Result of calling this function should
+*  Search through all children of node,
+*  executing the appropriate action
+*/
+void search(Node *node) {
+	if (node == nullptr)
+		return;
+	/*chiisai suitchu*/
+	switch (node->type) {
+	case AST_CLASS:
+		doClass(node);
+		break;
+	case AST_FEATURE_METHOD:
+		doMethod(node);
+		break;
+	case AST_IF:
+		doIf(node);
+		break;
+	case AST_CASE:
+		doCase(node);
+		break;
+	case AST_WHILE:
+		doLoop(node);
+		break;
+	default:
+		doOther(node);
+		break;
+	}
+}
+
+void doClass(Node * cls)
+{
+	if (!cls->reachable) {
+		cls->reachable = true;
+		for (auto chld : cls->getChildren()) {
+			search((Node *)chld);
+		}
+		string name = ((Node *)(cls->getChildren()[0]))->value;
+		q.push(name2node[globalTypeList[name]]); //queue the parent
+	}
+}
+
+void doMethod(Node * method)
+{
+	if (!method->reachable) {
+		method->reachable = true;
+		for (auto chld : method->getChildren()) {
+			search((Node *)chld);
+		}
+		string name = ((Node *)(method->getChildren()[0]))->value;
+	}
+}
+
+void doIf(Node * ifNode)
+{
+	Node *cond = (Node *)ifNode->getChildren()[0];
+	if (cond->type == AST_TRUE) {
+		ifNode->replaceSelf((Node *)ifNode->getChildren()[1]);
+	}
+	else if (cond->type == AST_FALSE) {
+		ifNode->replaceSelf((Node *)ifNode->getChildren()[2]);
+	}
+	else {
+		search((Node *)ifNode->getChildren()[0]);
+		search((Node *)ifNode->getChildren()[1]);
+		search((Node *)ifNode->getChildren()[2]);
+	}
+}
+
+void doLoop(Node * loopNode)
+{
+	Node *cond = (Node *)loopNode->getChildren()[0];
+	Node *body = (Node *)loopNode->getChildren()[1];
+	if (cond->type == AST_FALSE) {
+		body->deleteSelf();
+	}
+	else {
+		search((Node *)loopNode->getChildren()[0]);
+		search((Node *)loopNode->getChildren()[1]);
+	}
+}
+
+void doCase(Node * caseNode)
+{
+	//TODO
+	doOther(caseNode);
+}
+
+void doOther(Node * node)
+{
+	for (auto chld : node->getChildren()) {
+		search((Node *)chld);
+	}
+}
+
+/* Removes any class or function that is unreachable
+*  Need to check if I have to remove in symbol table
+*  or other global data structures
+*/
+void remove() {
+	string name;
+	Node *node;
+	for (auto table_entry : name2node) {
+		name = table_entry.first;
+		node = table_entry.second;
+		if (node != nullptr && !node->reachable)
+			node->deleteSelf();
+	}
+}
