@@ -32,14 +32,23 @@ ConstPropSettings::ConstPropSettings(ConstPropSettings &toTakeIn)
 
 string ConstPropSettings::getVal(string name) {
 	string ret = "";
+	cout << "Getting val of " << name;
 	if (localVarMap.count(name)) {
+		cout << " Local ";
 		ret = localVarMap.find(name)->second.second.top();
+		cout << ret << endl;
+		return ret;
 	}
 	else if (formalVarMap.count(name)) {
+		cout << " Formal ";
 		ret = formalVarMap.find(name)->second.second;
+		cout << ret << endl;
+		return ret;
 	}
 	else if(otherVarMap.count(name)) {
+		cout << " Other ";
 		ret = otherVarMap.find(name)->second.second;
+		cout << ret << endl;
 	}
 	return ret;
 }
@@ -47,22 +56,31 @@ string ConstPropSettings::getVal(string name) {
 string ConstPropSettings::getType(string name)
 {
 	string ret = "";
+	cout << "Getting type of " << name;
 	if (localVarMap.count(name)) {
+		cout << " Local ";
 		ret = localVarMap.find(name)->second.first;
+		cout << ret << endl;
 	}
 	else if (formalVarMap.count(name)) {
+		cout << " Formal ";
 		ret = formalVarMap.find(name)->second.first;
+		cout << ret << endl;
 	}
 	else if (otherVarMap.count(name)) {
+		cout << " Other " ;
 		ret = otherVarMap.find(name)->second.first;
+		cout << ret << endl;
 	}
 	return ret;
 }
 
 void ConstPropSettings::addLocal(string name, string type, string value = "")
 {
+	cout << "Adding local " << name << " with type " << type << " and value " << value << endl;
 	if (localVarMap.count(name)) {
 		localVarMap.find(name)->second.second.push("");
+		changed.at(0).emplace(name);
 	}
 	else { //not in locals yet.	
 		pair<string,stack<string>> tmp = pair<string,stack<string>>();
@@ -79,8 +97,9 @@ void ConstPropSettings::addFormal(string name, string type)
 {
 	if (formalVarMap.count(name)) {
 		formalVarMap.find(name)->second.second = "";
+		changed.at(1).emplace(name);
 	}
-	else { //not in locals yet.		
+	else { //not in formals yet.		
 		pair<string, string> tmp = pair<string, string>();
 		tmp.first = type;
 		tmp.second = "";
@@ -92,27 +111,28 @@ void ConstPropSettings::addOther(string name, string type, string value)
 {
 	if (otherVarMap.count(name) == 1) {
 		otherVarMap.find(name)->second.second = value;
+		changed.at(2).emplace(name);
 	}
-	else { //not in locals yet.		
+	else { //not in others yet.		
 		pair<string, string> sec = pair<string, string>();
 		sec.first = type;
 		sec.second = value;
-		formalVarMap.emplace(name, sec);
+		otherVarMap.emplace(name, sec);
 	}
 }
 
 void ConstPropSettings::addValToVar(string name, string type, string value)
 {
-	if (localVarMap.count(name) == 1) {
+	if (localVarMap.count(name)) {
 		this->changed.at(0).emplace(name);
 		this->localVarMap.find(name)->second.second.pop();
 		this->localVarMap.find(name)->second.second.push(value);
 	}
-	else if (formalVarMap.count(name) == 1) {
+	else if (formalVarMap.count(name)) {
 		this->changed.at(1).emplace(name);
 		formalVarMap.find(name)->second.second = value;
 	}
-	else if (otherVarMap.count(name) == 1) {
+	else if (otherVarMap.count(name)) {
 		this->changed.at(2).emplace(name);
 		otherVarMap.find(name)->second.second = value;
 	}

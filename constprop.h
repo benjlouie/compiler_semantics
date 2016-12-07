@@ -14,17 +14,19 @@ class ConstProp
 {
 public:
 	ConstProp();
-	ConstProp(ConstPropSettings settings);
+	ConstProp(ConstPropSettings &settings);
 	~ConstProp();
 	bool init();
-	bool doConstProp(vector<Node *> nodes);
-	bool doConstProp(Node *node);
-	ConstPropSettings getSettings();
-	void setSettings(ConstPropSettings settings);
+	bool doConstPropAttr(vector<Node *> nodes);
+	bool doConstPropMethod(vector<Node *> nodes);
+	//bool doConstProp(Node *node);
+	ConstPropSettings *getSettings();
+	void setSettings(ConstPropSettings &settings);
 	bool massiveSwitch(Node *expr);
 
 private:
-	ConstPropSettings settings;
+	ConstPropSettings* settings;
 	int getVal(Node *);
+	set<string> getIDs(Node *expr);
 	set<string> getAssigned(Node *expr);
 };
