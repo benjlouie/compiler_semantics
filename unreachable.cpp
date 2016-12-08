@@ -4,24 +4,34 @@ using namespace std;
 
 unordered_map<string, Node *> name2node;
 queue<Node *> q;
+string curClass;
 
 void buildMap();
 void search(Node *);
 void doClass(Node *cls);
+void doDispatch(Node *dis);
+void doNew(Node *node);
 void doMethod(Node *method);
 void doIf(Node *ifNode);
 void doLoop(Node *loopNode);
 void doCase(Node *caseNode);
 void doOther(Node *node);
 void remove();
+vector<string> getDescendants(string cls);
 
 void eliminateUnreachable() {
 	buildMap();
 	q.push(name2node["Main"]); //know this exists because we've passed semantic analysis
 	q.push(name2node["Main.main"]);
 	while (q.size() != 0) {
-		search(q.front());
+		Node *next = q.front();
 		q.pop();
+		if (next == nullptr)
+			continue;
+		if (next->type == AST_CLASS) {
+			curClass = ((Node *)next->getChildren()[0])->value;
+		}
+		search(next);
 	}
 	remove();
 	
@@ -54,10 +64,15 @@ void buildMap() {
 void search(Node *node) {
 	if (node == nullptr)
 		return;
-	/*chiisai suitchu*/
 	switch (node->type) {
 	case AST_CLASS:
 		doClass(node);
+		break;
+	case AST_DISPATCH:
+		doDispatch(node);
+		break;
+	case AST_NEW:
+		doNew(node);
 		break;
 	case AST_FEATURE_METHOD:
 		doMethod(node);
@@ -81,12 +96,46 @@ void doClass(Node * cls)
 {
 	if (!cls->reachable) {
 		cls->reachable = true;
-		for (auto chld : cls->getChildren()) {
-			search((Node *)chld);
+		for (auto chld : cls->getChildren()[2]->getChildren()) {
+			if (((Node *)chld)->type == AST_FEATURE_ATTRIBUTE)
+				search((Node *)chld);
 		}
 		string name = ((Node *)(cls->getChildren()[0]))->value;
 		q.push(name2node[globalTypeList[name]]); //queue the parent
 	}
+}
+
+void doDispatch(Node * dis)
+{
+	string name = ((Node *)dis->getChildren()[2])->value;
+	Node *caller = ((Node *)dis->getChildren()[0]);
+	Node *stc = ((Node *)dis->getChildren()[1]);
+	Node *definition = name2node[curClass + "." + name];
+	if (stc->type == AST_NULL && (caller->type == AST_NULL || caller->valType == "SELF_TYPE")) { 
+		vector<string> descendants = getDescendants(curClass);
+		for (string desc : descendants) {
+			if (name2node.count(curClass + "." + name) != 0) 
+				if (!name2node[curClass + "." + name]->reachable)
+					q.push(name2node[curClass + "." + name]);
+		}
+	}
+	else {
+		if (stc->type != AST_NULL) {
+			if (!name2node[stc->valType + "." + name]->reachable)
+				q.push(name2node[stc->valType + "." + name]);
+		}
+		else {
+			if (!name2node[caller->valType + "." + name]->reachable)
+				q.push(name2node[caller->valType + "." + name]);
+		}
+	}
+	doOther(dis);
+}
+
+void doNew(Node * node)
+{
+	string clsName = ((Node *)node->getChildren()[0])->value;
+	q.push(name2node[clsName]);
 }
 
 void doMethod(Node * method)
@@ -155,4 +204,22 @@ void remove() {
 		if (node != nullptr && !node->reachable)
 			node->deleteSelf();
 	}
+}
+
+vector<string> getDescendants(string cls) {
+	queue<string> clsQ;
+	vector<string> descendants;
+	string subcls = cls;
+	clsQ.push(cls);
+	while (clsQ.size() != 0) { //no cycles exist, this will terminate
+		subcls = clsQ.front();
+		clsQ.pop();
+		descendants.push_back(subcls);
+		for (auto pair : globalTypeList) {
+			if (pair.second == subcls) {
+				clsQ.push(pair.first);
+			}
+		}
+	}
+	return descendants;
 }
