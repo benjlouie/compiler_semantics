@@ -13,7 +13,7 @@ class ConstPropSettings
 public:
 	ConstPropSettings();
 	~ConstPropSettings();
-	ConstPropSettings::ConstPropSettings(ConstPropSettings &toTakeIn);
+	ConstPropSettings(ConstPropSettings &toTakeIn);
 	string getVal(string name);
 	string getType(string name);
 	void addLocal(string name, string type, string value);
@@ -24,9 +24,9 @@ public:
 	void removeChanged(vector<set<string>> changed);
 	void removeVar(string name);
 	vector<set<string>> getChanged();
-	map<string, pair<string, string>> ConstPropSettings::getOtherMap();
-	map<string, pair<string, string>> ConstPropSettings::getFormalMap();
-	map<string, pair<string, stack<string>>> ConstPropSettings::getLocalMap();
+	map<string, pair<string, string>> getOtherMap();
+	map<string, pair<string, string>> getFormalMap();
+	map<string, pair<string, stack<string>>> getLocalMap();
 
 private:
 	map<string, pair<string,string>> otherVarMap;

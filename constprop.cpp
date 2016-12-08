@@ -2,7 +2,7 @@
 
 bool ConstProp::init() 
 {
-	this->setSettings(ConstPropSettings());
+	this->setSettings(*(new ConstPropSettings()));
 	auto rootChildren = root->getChildren();
 	for (Tree *tchild : rootChildren) {
 		Node *classNode = (Node *)tchild;
@@ -418,13 +418,13 @@ bool ConstProp::massiveSwitch(Node *expr)
 		Node *newTrueNode = new Node(AST_TRUE);
 
 		//Remember: Making the assumption that massiveSwitch has already replaced anything that could have been replaced, so no nead to check identifiers here. Also, not doing anything but non-inheritable primitives cause I'm not insane.
-		if ((leftType == AST_TRUE && rightType == AST_FALSE) || (leftType == AST_FALSE && rightType == AST_TRUE)) {
+		if (((leftType == AST_TRUE) && (rightType == AST_FALSE)) || ((leftType == AST_FALSE) && (rightType == AST_TRUE))) {
 			expr->replaceSelf(newFalseNode);
 		}
-		else if (AST_TRUE == leftType == rightType || AST_FALSE == leftType == rightType) {
+		else if (((AST_TRUE == leftType) && (AST_TRUE == rightType)) || ((AST_FALSE == leftType) && (AST_FALSE == rightType))) {
 			expr->replaceSelf(newTrueNode);
 		}
-		else if (AST_STRING == leftType == rightType || AST_INTEGERLITERAL == leftType == rightType) {
+		else if (((AST_STRING == leftType) && (AST_STRING == rightType)) || ((AST_INTEGERLITERAL == leftType) && (AST_INTEGERLITERAL == rightType))) {
 			if (leftChild->value.compare(rightChild->value) == 0){
 				expr->replaceSelf(newTrueNode);
 			}
