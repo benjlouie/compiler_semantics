@@ -340,8 +340,111 @@ vector<string> SymbolTable::getMethodNames() {
 	return methods;
 }
 
-void SymbolTable::goToRoot(void) {
+void SymbolTable::goToRoot(void)
+{
 	cur = symRoot;
+}
+
+void SymbolTable::goToClass(std::string className)
+{
+	this->goToRoot();
+
+	vector<string> inheritanceList;
+	while (className != "Object") {
+		inheritanceList.push_back(className);
+		className = globalTypeList[className];
+	}
+	//traverse to class scope
+	for (auto it = inheritanceList.rbegin(); it < inheritanceList.rend(); it++) {
+		this->enterScope(*it);
+	}
+}
+
+vector<string> SymbolTable::getCurrentVariables(void)
+{
+	vector<string> retVars;
+	for (auto var : cur->variables) {
+		retVars.push_back(var.first);
+	}
+	return retVars;
+}
+
+vector<string> SymbolTable::getAllVariables(void)
+{
+	unordered_map<string, bool> vars;
+	SymNode *curScope = cur;
+	while (curScope != symRoot) {
+		for (auto classVar : curScope->variables) {
+			vars.emplace(classVar.first, true);
+		}
+		curScope = curScope->parent;
+	}
+	vars.emplace("self", true); //self in root
+
+	vector<string> retVect;
+	for (auto var : vars) {
+		retVect.push_back(var.first);
+	}
+	return retVect;
+}
+
+vector<string> SymbolTable::getAllClassVariables(void)
+{
+	unordered_map<string, bool> vars;
+	SymNode *curScope = cur;
+
+	//get to class scope
+	while (globalTypeList.count(curScope->name) == 0) {
+		curScope = curScope->parent;
+	}
+	//get all vars from every class above it
+	while (curScope->name != "Object") {
+		for (auto classVar : curScope->variables) {
+			vars.emplace(classVar.first, true);
+		}
+		curScope = curScope->parent;
+	}
+
+	vector<string> retVect;
+	for (auto var : vars) {
+		retVect.push_back(var.first);
+	}
+	return retVect;
+}
+
+vector<string> SymbolTable::getAllClassVariables(string className)
+{
+	unordered_map<string, bool> vars;
+	SymNode *curScope = symRoot;
+	//get to correct class
+	//get all variables going up
+	vector<string> inheritanceList;
+	while (className != "Object") {
+		inheritanceList.push_back(className);
+		className = globalTypeList[className];
+	}
+	//traverse to class scope
+	for (auto it = inheritanceList.rbegin(); it < inheritanceList.rend(); it++) {
+		//add all vars
+		for (auto classVar : curScope->variables) {
+			vars.emplace(classVar.first, true);
+		}
+		//find child to go to
+		for (auto s : curScope->children) {
+			if (s->name == *it) {
+				curScope = s;
+			}
+		}
+	}
+	for (auto classVar : curScope->variables) {
+		vars.emplace(classVar.first, true);
+	}
+
+	vector<string> retVect;
+	for (auto var : vars) {
+		retVect.push_back(var.first);
+	}
+	return retVect;
 }
 
 void SymbolTable::generateOffsets()
