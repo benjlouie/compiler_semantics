@@ -448,7 +448,7 @@ string unswitchLoops_recursive(aliasVars &vars, unordered_map<string, varData> &
 
 			if (sameClassTree) {
 				//update the vars if they are 
-				vector<string> &changedVars = globalSymTable->getAllClassVariables(funcType);
+				vector<string> changedVars = globalSymTable->getAllClassVariables(funcType);
 				for (string var : changedVars) {
 					//change only the class vars of funcType and up
 					if (var != "self") { //self is always known

@@ -19,5 +19,6 @@
 extern SymbolTable *globalSymTable;
 
 void semant();
+void rebuildSymTable();
 
 #endif //__SEMANT_H_

@@ -85,3 +85,12 @@ void semant()
 	buildScope();
 
 }
+
+void rebuildSymTable()
+{
+    delete globalSymTable;
+    globalSymTable = new SymbolTable("Object");
+    globalTypeList.clear();
+    setupClasses();
+    buildScope();
+}
