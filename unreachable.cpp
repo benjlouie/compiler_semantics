@@ -110,22 +110,21 @@ void doDispatch(Node * dis)
 	string name = ((Node *)dis->getChildren()[2])->value;
 	Node *caller = ((Node *)dis->getChildren()[0]);
 	Node *stc = ((Node *)dis->getChildren()[1]);
-	if (stc->type == AST_NULL && (caller->type == AST_NULL || caller->valType == "SELF_TYPE")) { 
-		vector<string> descendants = getDescendants(curClass);
-		for (string desc : descendants) {
-			if (name2node.count(curClass + "." + name) != 0 && name2node[curClass + "." + name] != nullptr) 
-				if (!name2node[curClass + "." + name]->reachable)
-					q.push(name2node[curClass + "." + name]);
+	vector<string> descendants;
+	if (caller->valType == "SELF_TYPE" || caller->type == AST_NULL) {
+		descendants = getDescendants(curClass);
+	} else {
+		if (stc->type == AST_NULL) {
+			descendants = getDescendants(stc->value);
+		} else {
+			descendants = getDescendants(caller->valType);
 		}
 	}
-	else {
-		if (stc->type != AST_NULL) {
-			if (!(name2node[stc->valType + "." + name] == nullptr || name2node[stc->valType + "." + name]->reachable))
-				q.push(name2node[stc->valType + "." + name]);
-		}
-		else {
-			if (!(name2node[caller->valType + "." + name] == nullptr || name2node[caller->valType + "." + name]->reachable))
-				q.push(name2node[caller->valType + "." + name]);
+	for (string desc : descendants) {
+		if (name2node.count(desc + "." + name) != 0 && name2node[desc + "." + name] != nullptr) {
+			if (!name2node[desc + "." + name]->reachable){
+				q.push(name2node[desc + "." + name]);
+			}
 		}
 	}
 	doOther(dis);
