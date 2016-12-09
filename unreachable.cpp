@@ -110,11 +110,10 @@ void doDispatch(Node * dis)
 	string name = ((Node *)dis->getChildren()[2])->value;
 	Node *caller = ((Node *)dis->getChildren()[0]);
 	Node *stc = ((Node *)dis->getChildren()[1]);
-	Node *definition = name2node[curClass + "." + name];
 	if (stc->type == AST_NULL && (caller->type == AST_NULL || caller->valType == "SELF_TYPE")) { 
 		vector<string> descendants = getDescendants(curClass);
 		for (string desc : descendants) {
-			if (name2node.count(curClass + "." + name) != 0) 
+			if (name2node.count(curClass + "." + name) != 0 && name2node[curClass + "." + name] != nullptr) 
 				if (!name2node[curClass + "." + name]->reachable)
 					q.push(name2node[curClass + "." + name]);
 		}
