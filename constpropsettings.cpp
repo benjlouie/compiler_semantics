@@ -32,23 +32,14 @@ ConstPropSettings::ConstPropSettings(ConstPropSettings &toTakeIn)
 
 string ConstPropSettings::getVal(string name) {
 	string ret = "";
-	cout << "Getting val of " << name;
 	if (localVarMap.count(name)) {
-		cout << " Local ";
 		ret = localVarMap.find(name)->second.second.top();
-		cout << ret << endl;
-		return ret;
 	}
 	else if (formalVarMap.count(name)) {
-		cout << " Formal ";
 		ret = formalVarMap.find(name)->second.second;
-		cout << ret << endl;
-		return ret;
 	}
 	else if(otherVarMap.count(name)) {
-		cout << " Other ";
 		ret = otherVarMap.find(name)->second.second;
-		cout << ret << endl;
 	}
 	return ret;
 }
@@ -56,28 +47,20 @@ string ConstPropSettings::getVal(string name) {
 string ConstPropSettings::getType(string name)
 {
 	string ret = "";
-	cout << "Getting type of " << name;
 	if (localVarMap.count(name)) {
-		cout << " Local ";
 		ret = localVarMap.find(name)->second.first;
-		cout << ret << endl;
 	}
 	else if (formalVarMap.count(name)) {
-		cout << " Formal ";
 		ret = formalVarMap.find(name)->second.first;
-		cout << ret << endl;
 	}
 	else if (otherVarMap.count(name)) {
-		cout << " Other " ;
 		ret = otherVarMap.find(name)->second.first;
-		cout << ret << endl;
 	}
 	return ret;
 }
 
 void ConstPropSettings::addLocal(string name, string type, string value = "")
 {
-	cout << "Adding local " << name << " with type " << type << " and value " << value << endl;
 	if (localVarMap.count(name)) {
 		localVarMap.find(name)->second.second.push("");
 		changed.at(0).emplace(name);

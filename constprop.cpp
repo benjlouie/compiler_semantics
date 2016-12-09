@@ -530,7 +530,6 @@ bool ConstProp::massiveSwitch(Node *expr)
 		Node *id = (Node *)(idTypeExprChildren.at(0));
 
 
-		//cout << "adding local with name " << id->value << endl;
 		if (idType->value == "Int" && idExpr->type == AST_INTEGERLITERAL) {
 			this->settings->addLocal(id->value, idType->value, idExpr->value);
 		}
@@ -581,32 +580,19 @@ bool ConstProp::massiveSwitch(Node *expr)
 
 		//get assigned and see if one of the ID's in the test is changed
 		set<string> toRemove = getAssigned((Node *)tChildren.at(1));
-		cout << "Removing: ";
-		for (string s : toRemove) {
-			cout << s << ", ";
-		}
-		cout << endl;
 
 		Node *whileTest = (Node *)tChildren.at(0);
 		set<string> ids = getIDs(whileTest);
-
-		cout << "Ids found: ";
-		for (string s : ids) {
-			cout << s << ", ";
-		}
-		cout << endl;
 
 		for (string id : ids) {
 			//if it is changed, we can't modify the test
 			if (toRemove.count(id)) {
 				canModifyTest = false;
-				cout << "Can't modify." << endl;
 			}
 		}
 
 		//if we CAN modify the test, run massive switch on it.
 		if (canModifyTest) {
-			cout << "Can modify" << endl;
 			massiveSwitch(whileTest);
 			tChildren = expr->getChildren();
 		}
@@ -634,7 +620,6 @@ bool ConstProp::massiveSwitch(Node *expr)
 		string name = expr->value;
 		string val = this->settings->getVal(name);
 		string type = this->settings->getType(name);
-		cout << name << " with val " << val << " with type " << type << endl;
 		if (val != "") {
 			if (type == "Int") {
 				expr->replaceSelf(newIntNode(val));
@@ -758,8 +743,6 @@ set<string> ConstProp::getAssigned(Node *expr)
 	if (tChildren.size() < 0) {
 		return set<string>();
 	}
-
-	cout << "A node of type " << enum2string(expr->type) << " was found in getAssignCount" << endl;
 
 	switch (expr->type) {
 	case AST_NULL:
