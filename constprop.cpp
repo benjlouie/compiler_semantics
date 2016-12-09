@@ -1,5 +1,9 @@
 #include "constprop.h"
 
+Node *newBoolNode(bool x);
+Node *newStringNode(string val);
+Node *newIntNode(string val);
+
 bool ConstProp::init() 
 {
 	this->setSettings(*(new ConstPropSettings()));
@@ -28,8 +32,8 @@ bool ConstProp::init()
 			continue;
 		}
 
-		vector<Node *> attrVector;
-		vector<Node *> methodVector;
+		vector<Node *> attrVector = {};
+		vector<Node *> methodVector = {};
 
 		auto featChildren = features->getChildren();
 		for (auto tFeatChild : featChildren) {
@@ -82,7 +86,7 @@ bool ConstProp::doConstPropMethod(vector<Node *> nodes)
 
 	for (auto node : nodes) {
 		massiveSwitch(node);
-		//this->se
+		this->settings = new ConstPropSettings();
 	}
 	//cerr << "doConstProp with nodes isn't yet implemented." << endl;
 	return true;
@@ -120,10 +124,10 @@ bool ConstProp::massiveSwitch(Node *expr)
 		notChild = (Node *)(expr->getChildren().at(0));
 
 		if (notChild->type == AST_TRUE) {
-			expr->replaceSelf(new Node(AST_FALSE));
+			expr->replaceSelf(newBoolNode(false));
 		}
 		else if (notChild->type == AST_FALSE) {
-			expr->replaceSelf(new Node(AST_TRUE));
+			expr->replaceSelf(newBoolNode(true));
 		}
 
 		break;
@@ -144,7 +148,7 @@ bool ConstProp::massiveSwitch(Node *expr)
 			int val = this->getVal(tildeChild);
 			
 			//0 - <positive> = <negative>, 0 - <negative> = <positive>
-			expr->replaceSelf(new Node(AST_INTEGERLITERAL, to_string(0 - val)));
+			expr->replaceSelf(newIntNode(to_string(0 - val)));
 		}
 		break;
 	}
@@ -159,7 +163,7 @@ bool ConstProp::massiveSwitch(Node *expr)
 		case AST_TRUE:
 		case AST_FALSE:
 		case AST_STRING:
-			expr->replaceSelf(new Node(AST_FALSE));
+			expr->replaceSelf(newBoolNode(false));
 		default:
 			//Can't do anything else because you don't know if a value is null until run time
 			//Or the child is a while. However, if it's a while, we need to exec the stuff 
@@ -199,7 +203,7 @@ bool ConstProp::massiveSwitch(Node *expr)
 			else {
 				total = leftVal - rightVal;
 			}
-			expr->replaceSelf(new Node(AST_INTEGERLITERAL, to_string(total)));
+			expr->replaceSelf(newIntNode(to_string(total)));
 		}
 		else if (leftChild->type == AST_INTEGERLITERAL) {
 			leftVal = getVal(leftChild);
@@ -208,7 +212,9 @@ bool ConstProp::massiveSwitch(Node *expr)
 					expr->replaceSelf(rightChild);
 				}
 				else {
-					expr->replaceSelf(new Node(AST_TILDE, 1, rightChild));
+					Node *tmp = new Node(AST_TILDE, 1, rightChild);
+					tmp->valType = "Int";
+					expr->replaceSelf(tmp);
 				}
 			}
 		}
@@ -245,12 +251,12 @@ bool ConstProp::massiveSwitch(Node *expr)
 			leftVal = getVal(leftChild);
 			rightVal = getVal(rightChild);
 			int total = leftVal * rightVal;
-			expr->replaceSelf(new Node(AST_INTEGERLITERAL, to_string(total)));
+			expr->replaceSelf(newIntNode(to_string(total)));
 		}
 		else if (leftChild->type == AST_INTEGERLITERAL) {
 			leftVal = getVal(leftChild);
 			if (leftVal == 0) {
-				expr->replaceSelf(new Node(AST_INTEGERLITERAL, "0"));
+				expr->replaceSelf(newIntNode("0"));
 			}
 			else if (leftVal == 1) {
 				expr->replaceSelf(rightChild);
@@ -259,7 +265,7 @@ bool ConstProp::massiveSwitch(Node *expr)
 		else if (rightChild->type == AST_INTEGERLITERAL) {
 			rightVal = getVal(rightChild);
 			if (rightVal == 0) {
-				expr->replaceSelf(new Node(AST_INTEGERLITERAL, "0"));
+				expr->replaceSelf(newIntNode("0"));
 			}
 			else if (rightVal == 1) {
 				//Good idea? SHould I do new node with leftChilds val?
@@ -298,12 +304,12 @@ bool ConstProp::massiveSwitch(Node *expr)
 				return false;
 			}
 			int total = leftVal / rightVal;
-			expr->replaceSelf(new Node(AST_INTEGERLITERAL, to_string(total)));
+			expr->replaceSelf(newIntNode(to_string(total)));
 		}
 		else if (leftChild->type == AST_INTEGERLITERAL) {
 			leftVal = getVal(leftChild);
 			if (leftVal == 0) {
-				expr->replaceSelf(new Node(AST_INTEGERLITERAL, "0"));
+				expr->replaceSelf(newIntNode("0"));
 			}
 		}
 		else if (rightChild->type == AST_INTEGERLITERAL) {
@@ -351,10 +357,10 @@ bool ConstProp::massiveSwitch(Node *expr)
 			}
 
 			if (res) {
-				expr->replaceSelf(new Node(AST_TRUE));
+				expr->replaceSelf(newBoolNode(true));
 			}
 			else {
-				expr->replaceSelf(new Node(AST_FALSE));
+				expr->replaceSelf(newBoolNode(false));
 			}
 		}
 		else if (leftChild->type == AST_INTEGERLITERAL) {
@@ -362,13 +368,13 @@ bool ConstProp::massiveSwitch(Node *expr)
 			if (expr->type == AST_LE) {
 				//INT_MIN <= x is always true (x can't be below the min)
 				if (leftVal == INT32_MIN) {
-					expr->replaceSelf(new Node(AST_FALSE));
+					expr->replaceSelf(newBoolNode(true));
 				}
 			}
 			else {
 				//INT_MAX < x is false always (nothing above max)
 				if (leftVal == INT32_MAX) {
-					expr->replaceSelf(new Node(AST_FALSE));
+					expr->replaceSelf(newBoolNode(false));
 				}
 			}
 
@@ -378,13 +384,13 @@ bool ConstProp::massiveSwitch(Node *expr)
 			if (expr->type == AST_LT) {
 				//x < INT_MIN is always false (nothing below min)
 				if (rightVal == INT32_MIN) {
-					expr->replaceSelf(new Node(AST_FALSE));
+					expr->replaceSelf(newBoolNode(false));
 				}
 			}
 			else {
 				//x <= INT_MAX is always true (nothing above max)
 				if (rightVal == INT32_MAX) {
-					expr->replaceSelf(new Node(AST_TRUE));
+					expr->replaceSelf(newBoolNode(true));
 				}
 			}
 		}
@@ -414,8 +420,8 @@ bool ConstProp::massiveSwitch(Node *expr)
 		string leftValType = leftChild->valType;
 		string rightValType = rightChild->valType;
 
-		Node *newFalseNode = new Node(AST_FALSE);
-		Node *newTrueNode = new Node(AST_TRUE);
+		Node *newFalseNode = newBoolNode(false);
+		Node *newTrueNode = newBoolNode(true);
 
 		//Remember: Making the assumption that massiveSwitch has already replaced anything that could have been replaced, so no nead to check identifiers here. Also, not doing anything but non-inheritable primitives cause I'm not insane.
 		if (((leftType == AST_TRUE) && (rightType == AST_FALSE)) || ((leftType == AST_FALSE) && (rightType == AST_TRUE))) {
@@ -524,7 +530,7 @@ bool ConstProp::massiveSwitch(Node *expr)
 		Node *id = (Node *)(idTypeExprChildren.at(0));
 
 
-		cout << "adding local with name " << id->value << endl;
+		//cout << "adding local with name " << id->value << endl;
 		if (idType->value == "Int" && idExpr->type == AST_INTEGERLITERAL) {
 			this->settings->addLocal(id->value, idType->value, idExpr->value);
 		}
@@ -631,18 +637,18 @@ bool ConstProp::massiveSwitch(Node *expr)
 		cout << name << " with val " << val << " with type " << type << endl;
 		if (val != "") {
 			if (type == "Int") {
-				expr->replaceSelf(new Node(AST_INTEGERLITERAL, val));
+				expr->replaceSelf(newIntNode(val));
 			}
 			else if (type == "Bool") {
 				if (val == "true") {
-					expr->replaceSelf(new Node(AST_TRUE));
+					expr->replaceSelf(newBoolNode(true));
 				}
 				else {
-					expr->replaceSelf(new Node(AST_FALSE));
+					expr->replaceSelf(newBoolNode(false));
 				}
 			}
 			else if (type == "String") {
-				expr->replaceSelf(new Node(AST_STRING, val));
+				expr->replaceSelf(newStringNode(val));
 			}
 			else {
 				cerr << "There was an AST_IDENTIFIER with the name " << name << " with type " << type << " that shouldn't be there!" << endl;
@@ -753,7 +759,14 @@ set<string> ConstProp::getAssigned(Node *expr)
 		return set<string>();
 	}
 
+	cout << "A node of type " << enum2string(expr->type) << " was found in getAssignCount" << endl;
+
 	switch (expr->type) {
+	case AST_NULL:
+	case AST_STRING:
+	case AST_INTEGERLITERAL:
+	case AST_IDENTIFIER:
+		break;
 	case AST_LARROW: {
 		//add changed to list and increment by 1
 		string name = ((Node *)tChildren.at(0))->value;
@@ -791,21 +804,22 @@ set<string> ConstProp::getAssigned(Node *expr)
 		Node *idTypeExpr = (Node *)tChildren.at(0);
 		Node *secondExpr = (Node *)tChildren.at(1);
 
-		Node *idTypeChild = (Node *)idTypeExpr->getChildren().at(2);
-		set<string> idTypeChildAssigned = getAssigned(idTypeChild);
+		Node *idTypeChildExpr = (Node *)idTypeExpr->getChildren().at(2);
+		set<string> idTypeChildAssigned = getAssigned(idTypeChildExpr);
 
 		ret.insert(idTypeChildAssigned.begin(), idTypeChildAssigned.end());
 
 		set<string> changed = getAssigned(secondExpr);
-		if (changed.count(((Node *)idTypeChild->getChildren().at(0))->value)) {
-			changed.erase(((Node *)idTypeChild->getChildren().at(0))->value);
+
+		if (changed.count(((Node *)(idTypeExpr->getChildren().at(0)))->value)) {
+			changed.erase(((Node *)(idTypeExpr->getChildren().at(0)))->value);
 		}
 
 		ret.insert(changed.begin(), changed.end());
 		break;
 	}
 	default: {
-		cout << "A node of type " << enum2string(expr->type) << " was found in getAssignCount" << endl;
+		
 		for (Tree *tChild : tChildren) {
 			set<string> assigned = getAssigned((Node *)tChild);
 			ret.insert(assigned.begin(), assigned.end());
@@ -830,5 +844,35 @@ set<string> ConstProp::getIDs(Node *expr) {
 		}
 	}
 
+	return ret;
+}
+
+Node *newIntNode(string val)
+{
+	Node *ret = new Node(AST_INTEGERLITERAL, val);
+	ret->valType = "Int";
+	return ret;
+}
+
+Node *newStringNode(string val)
+{
+	Node *ret = new Node(AST_STRING, val);
+	ret->valType = "String";
+	return ret;
+}
+
+Node *newBoolNode(bool x)
+{
+	Node *ret;
+	if(x){
+		 ret = new Node(AST_TRUE);
+		 ret->value = "1";
+	}
+	else {
+		ret = new Node(AST_FALSE);
+		ret->value = "0";
+	}
+
+	ret->valType = "Bool";
 	return ret;
 }
