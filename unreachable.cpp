@@ -120,11 +120,11 @@ void doDispatch(Node * dis)
 	}
 	else {
 		if (stc->type != AST_NULL) {
-			if (!name2node[stc->valType + "." + name]->reachable)
+			if (!(name2node[stc->valType + "." + name] == nullptr || name2node[stc->valType + "." + name]->reachable))
 				q.push(name2node[stc->valType + "." + name]);
 		}
 		else {
-			if (!name2node[caller->valType + "." + name]->reachable)
+			if (!(name2node[caller->valType + "." + name] == nullptr || name2node[caller->valType + "." + name]->reachable))
 				q.push(name2node[caller->valType + "." + name]);
 		}
 	}
