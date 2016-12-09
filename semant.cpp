@@ -74,5 +74,23 @@ void semant()
 
 	typeCheck();
 	
-	
+	//OPTIMIZATION - Loop Unswitching
+	unswitchLoops();
+	//must rebuild symbol table
+	//if a let is unswitched the symbolTable will be incorrect
+	delete globalSymTable;
+	globalSymTable = new SymbolTable("Object");
+	globalTypeList.clear(); //needed so setupClasses works correctly
+	setupClasses();
+	buildScope();
+
+}
+
+void rebuildSymTable()
+{
+    delete globalSymTable;
+    globalSymTable = new SymbolTable("Object");
+    globalTypeList.clear();
+    setupClasses();
+    buildScope();
 }
